@@ -25,3 +25,8 @@ A Mac with Xcode (or a cloud Mac build service) and an Apple Developer Program m
 - Where the control plane will live in production: recommend a small separate host so a server move never takes the control plane with it. Same-host setups are allowed, with the limitation noted in BUSINESS-RULES.
 - Single-tenant for now. Assumed unless Dylan says otherwise.
 - Windows tunnel approach: decided at the start of phase 2.
+
+## Spec notes (flagged for Dylan, no action needed unless you disagree)
+- `devices.expires_at` added (BUSINESS-RULES "Expiry" needs it; DATA-MODEL.md does not list it). Task 1.1.
+- `modernc.org/sqlite` pinned to v1.38.2: the latest (v1.61) requires Go 1.26, the dev image uses Go 1.24. Task 1.1.
+- Git repo is on branch `master`; CLAUDE.md names `main`. Left as is; commits are on `master`.

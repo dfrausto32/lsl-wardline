@@ -23,3 +23,7 @@ func SentenceServerCheckedIn(server string) string {
 func SentenceAdminSignedIn(actor string) string {
 	return fmt.Sprintf("%s signed in.", actor)
 }
+
+func SentenceDeviceSetUp(device string) string {
+	return fmt.Sprintf("%s was set up and is ready to connect.", device)
+}

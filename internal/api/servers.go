@@ -240,40 +240,14 @@ func (s *Server) touchServer(ctx context.Context, id string) {
 }
 
 func (s *Server) handleGatewayDesired(w http.ResponseWriter, r *http.Request, serverID string) {
-	since, err := strconv.ParseInt(r.URL.Query().Get("since"), 10, 64)
-	if err != nil {
-		since = -1
-	}
 	s.touchServer(r.Context(), serverID)
-	deadline := time.NewTimer(s.d.HoldTime)
-	defer deadline.Stop()
-	for {
-		ch := s.hub.wait() // take the channel first so a change between here and the check is not missed
-		v := s.version(r.Context())
-		if since < 0 || v > since {
-			st, err := s.buildState(r.Context(), serverID, v)
-			if err != nil {
-				s.serverError(w, r, err)
-				return
-			}
-			signed, err := gateway.Sign(s.d.SigningKey, st)
-			if err != nil {
-				s.serverError(w, r, err)
-				return
-			}
-			s.json(w, http.StatusOK, signed)
-			return
+	s.longPoll(w, r, func() { s.touchServer(r.Context(), serverID) }, func(v int64) (any, error) {
+		st, err := s.buildState(r.Context(), serverID, v)
+		if err != nil {
+			return nil, err
 		}
-		select {
-		case <-ch:
-		case <-deadline.C:
-			s.touchServer(r.Context(), serverID)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		case <-r.Context().Done():
-			return
-		}
-	}
+		return gateway.Sign(s.d.SigningKey, st)
+	})
 }
 
 // buildState is what the server must look like right now.

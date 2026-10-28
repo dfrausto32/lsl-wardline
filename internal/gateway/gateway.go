@@ -203,11 +203,9 @@ func (g *Gateway) ReportNow(ctx context.Context) error {
 	}
 	g.mu.Unlock()
 
-	peers, err := g.cfg.Backend.Peers(ctx, g.cfg.Iface)
-	if err != nil {
-		return nil // nothing applied yet, so nothing to report
-	}
 	r := Report{ServerID: g.id.ServerID, Time: time.Now().UTC(), Applied: version}
+	// Before the first state is applied there is no interface yet; the report is then an empty heartbeat.
+	peers, _ := g.cfg.Backend.Peers(ctx, g.cfg.Iface)
 	for _, p := range peers {
 		r.Peers = append(r.Peers, PeerReport{DeviceID: devices[p.PublicKey], PublicKey: p.PublicKey,
 			LastHandshake: p.LastHandshake, RxBytes: p.RxBytes, TxBytes: p.TxBytes, Endpoint: p.LastEndpoint})

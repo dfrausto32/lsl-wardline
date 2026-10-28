@@ -30,3 +30,6 @@ A Mac with Xcode (or a cloud Mac build service) and an Apple Developer Program m
 - `devices.expires_at` added (BUSINESS-RULES "Expiry" needs it; DATA-MODEL.md does not list it). Task 1.1.
 - `modernc.org/sqlite` pinned to v1.38.2: the latest (v1.61) requires Go 1.26, the dev image uses Go 1.24. Task 1.1.
 - Git repo is on branch `master`; CLAUDE.md names `main`. Left as is; commits are on `master`.
+- `servers.auth_token_hash` column added (migration 0003): a server needs a bearer token to talk to the control plane and DATA-MODEL.md has nowhere to keep its hash. Task 1.7.
+- Install commands reference the image name `lsl-wardline:latest`. No registry is decided; tell me where images should be published (for example ghcr.io under an LSL account) before real use. Task 1.7.
+- Not done in 1.7, on purpose: a used TOTP code can be replayed inside its 90-second window (no last-used-counter stored). Small, but noted.

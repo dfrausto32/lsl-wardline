@@ -41,6 +41,37 @@ type DesiredState struct {
 	AllowedIPs      []string  `json:"allowed_ips"`
 	PresharedKey    string    `json:"preshared_key,omitempty"`
 	Keepalive       int       `json:"keepalive"`
+	// PublicKey is the key the control plane currently accepts for this device. If it differs from the
+	// agent's own, a security refresh was completed or rolled back and the agent must follow it.
+	PublicKey  string     `json:"public_key"`
+	RefreshDue *time.Time `json:"refresh_due,omitempty"`
+}
+
+// RefreshRequest asks the control plane to start accepting a new key in place of the current one.
+type RefreshRequest struct {
+	PublicKey string `json:"public_key"`
+}
+
+// Problems an agent can report, in words the web app turns into plain language.
+const (
+	ProblemNone              = ""
+	ProblemServerUnreachable = "server_unreachable"
+	ProblemNameNotFound      = "name_not_found"
+	ProblemRefreshFailed     = "refresh_failed"
+	ProblemKeyMismatch       = "key_mismatch"
+)
+
+// Report is the device's own view of its health, sent regularly.
+type Report struct {
+	DeviceID       string    `json:"device_id"`
+	Time           time.Time `json:"time"`
+	AppliedVersion int64     `json:"applied_version"`
+	AgentVersion   string    `json:"agent_version,omitempty"`
+	TunnelUp       bool      `json:"tunnel_up"`
+	LastHandshake  time.Time `json:"last_handshake"`
+	RxBytes        int64     `json:"rx_bytes"`
+	TxBytes        int64     `json:"tx_bytes"`
+	Problem        string    `json:"problem,omitempty"`
 }
 
 // Sign signs the state with the control plane's key. It uses the same envelope as the server role.

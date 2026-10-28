@@ -229,6 +229,8 @@ func TestSentencesAreWordedForPeopleNotNetworkers(t *testing.T) {
 		SentenceServerCheckedIn("Server 1"),
 		SentenceAdminSignedIn("Maria"),
 		SentenceDeviceSetUp("Sam's laptop"),
+		SentenceDeviceRefreshed("Sam's laptop"),
+		SentenceDeviceRefreshFailed("Sam's laptop"),
 	}
 	banned := []string{"peer", "node", "client", "gateway", "hub", "endpoint", "vpn", "tunnel", "handshake", "revoke", "rotate", "migrate", "audit log", "public key", "private key"}
 	for _, s := range sentences {

@@ -118,11 +118,14 @@ type deviceRow struct {
 	Added                                                  time.Time
 	Seen, RefreshDue                                       *time.Time
 	Rx, Tx                                                 int64
+	AgentVersion, AgentProblem                             string
+	AgentReported, RefreshFailed                           *time.Time
 }
 
 func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]deviceRow, error) {
 	rows, err := s.d.Store.DB().QueryContext(ctx, `SELECT d.id, d.person_id, p.display_name, d.name, d.platform, d.kind, d.status, d.tunnel_ip,
-		COALESCE(k.public_key,''), COALESCE(d.last_endpoint,''), d.added_at, d.last_seen_at, d.refresh_due_at, d.rx_bytes, d.tx_bytes
+		COALESCE(k.public_key,''), COALESCE(d.last_endpoint,''), d.added_at, d.last_seen_at, d.refresh_due_at, d.rx_bytes, d.tx_bytes,
+		COALESCE(d.agent_version,''), COALESCE(d.agent_problem,''), d.agent_reported_at, d.refresh_failed_at
 		FROM devices d JOIN people p ON p.id=d.person_id LEFT JOIN device_keys k ON k.device_id=d.id AND k.state='active'
 		WHERE d.status <> 'removed' `+where+` ORDER BY d.added_at, d.id`, args...)
 	if err != nil {
@@ -133,13 +136,14 @@ func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]
 	for rows.Next() {
 		var d deviceRow
 		var added string
-		var seen, due sql.NullString
+		var seen, due, reported, failed sql.NullString
 		if err := rows.Scan(&d.ID, &d.PersonID, &d.PersonName, &d.Name, &d.Platform, &d.Kind, &d.Status, &d.TunnelIP, &d.PublicKey, &d.Endpoint,
-			&added, &seen, &due, &d.Rx, &d.Tx); err != nil {
+			&added, &seen, &due, &d.Rx, &d.Tx, &d.AgentVersion, &d.AgentProblem, &reported, &failed); err != nil {
 			return nil, err
 		}
 		d.Added, _ = time.Parse(time.RFC3339, added)
 		d.Seen, d.RefreshDue = parseTime(seen), parseTime(due)
+		d.AgentReported, d.RefreshFailed = parseTime(reported), parseTime(failed)
 		out = append(out, d)
 	}
 	return out, rows.Err()
@@ -157,12 +161,25 @@ func (s *Server) displayStatus(d deviceRow) string {
 	}
 }
 
+// agentProblem is what the device itself says is wrong, if it said so recently.
+func (s *Server) agentProblem(d deviceRow) string {
+	if d.Kind != "agent" || d.AgentReported == nil || s.now().Sub(*d.AgentReported) > agentReportFresh {
+		return ""
+	}
+	return d.AgentProblem
+}
+
 func (s *Server) view(d deviceRow) map[string]any {
-	return map[string]any{
+	v := map[string]any{
 		"id": d.ID, "person_id": d.PersonID, "person_name": d.PersonName, "name": d.Name, "platform": d.Platform, "kind": d.Kind,
 		"status": s.displayStatus(d), "last_seen_at": d.Seen, "added_at": d.Added,
-		"refresh_due": d.RefreshDue != nil && !s.now().Before(*d.RefreshDue),
+		// Only phones and computers set up by hand need a person to refresh them; agents do it themselves.
+		"refresh_due": d.Kind == "manual" && d.RefreshDue != nil && !s.now().Before(*d.RefreshDue),
 	}
+	if d.Kind == "agent" {
+		v["agent"] = map[string]any{"version": d.AgentVersion, "problem": s.agentProblem(d), "reported_at": d.AgentReported}
+	}
+	return v
 }
 
 func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request, _ string) {
@@ -229,8 +246,14 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request, _ string) {
 		if d.Seen != nil && now.Sub(*d.Seen) > unseenAttention {
 			attention = append(attention, map[string]any{"kind": "device_unseen_30_days", "device_id": d.ID, "device_name": d.Name})
 		}
-		if d.RefreshDue != nil && !now.Before(*d.RefreshDue) {
+		if d.Kind == "manual" && d.RefreshDue != nil && !now.Before(*d.RefreshDue) {
 			attention = append(attention, map[string]any{"kind": "refresh_due", "device_id": d.ID, "device_name": d.Name})
+		}
+		if p := s.agentProblem(d); p != "" {
+			attention = append(attention, map[string]any{"kind": "device_problem", "device_id": d.ID, "device_name": d.Name, "problem": p})
+		}
+		if d.RefreshFailed != nil {
+			attention = append(attention, map[string]any{"kind": "refresh_failed", "device_id": d.ID, "device_name": d.Name})
 		}
 	}
 

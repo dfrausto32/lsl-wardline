@@ -34,6 +34,7 @@ services:
       - gomod:/go/pkg/mod
       - gobuild:/root/.cache/go-build
       - pnpmstore:/root/.local/share/pnpm
+      - webmodules:/src/web/node_modules
     cap_add:
       - NET_ADMIN
     devices:
@@ -44,8 +45,16 @@ services:
     image: mcr.microsoft.com/playwright:v1.49.1-jammy
     profiles: ["ui"]
     working_dir: /src/web
+    # Share the control plane network namespace so the page is served from localhost,
+    # which browsers treat as a secure context (needed for installing the app).
+    network_mode: "service:control"
+    environment:
+      BASE_URL: http://localhost:8080
+      LAB_DIR: /lab
     volumes:
       - .:/src
+      - webmodules:/src/web/node_modules
+      - lab-shared:/lab
     ipc: host
 
   # ---- lab: control plane, two servers, two simulated devices on one private network ----
@@ -105,6 +114,7 @@ services:
     command: ["go", "test", "-tags", "e2e", "-count=1", "-v", "-timeout", "300s", "./e2e/"]
 
 volumes:
+  webmodules:
   gomod:
   gobuild:
   pnpmstore:

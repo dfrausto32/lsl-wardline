@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"lsl-wardline/internal/audit"
 	"lsl-wardline/internal/auth"
 	"lsl-wardline/internal/ipam"
+	"lsl-wardline/internal/render"
 	"lsl-wardline/internal/store"
 )
 
@@ -179,7 +181,13 @@ func (s *Server) handleTOTPBegin(w http.ResponseWriter, r *http.Request, adminID
 		return
 	}
 	s.pending.Store(adminID, secret)
-	s.json(w, http.StatusOK, map[string]string{"secret": secret, "url": auth.TOTPURL(secret, s.adminEmail(r.Context(), adminID))})
+	url := auth.TOTPURL(secret, s.adminEmail(r.Context(), adminID))
+	qr, err := render.QRCodePNG(url, 280)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.json(w, http.StatusOK, map[string]string{"secret": secret, "url": url, "qr_png_base64": base64.StdEncoding.EncodeToString(qr)})
 }
 
 func (s *Server) handleTOTPConfirm(w http.ResponseWriter, r *http.Request, adminID string) {

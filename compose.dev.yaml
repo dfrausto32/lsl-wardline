@@ -1,6 +1,27 @@
 name: wardline
 
 # All named volumes get the "wardline_" prefix from the project name above.
+x-lab-server: &lab-server
+  image: lsl-wardline:latest
+  profiles: ["lab"]
+  cap_add: [NET_ADMIN]
+  devices: ["/dev/net/tun:/dev/net/tun"]
+  depends_on: [control]
+  environment:
+    WARDLINE_CONTROL_URL: http://control:8080
+  volumes:
+    - lab-shared:/lab
+    - ./lab:/lab-scripts:ro
+
+x-lab-device: &lab-device
+  image: wardline-dev:latest
+  profiles: ["lab"]
+  cap_add: [NET_ADMIN]
+  devices: ["/dev/net/tun:/dev/net/tun"]
+  volumes:
+    - lab-shared:/lab
+    - ./lab:/lab-scripts:ro
+
 services:
   dev:
     build:
@@ -27,7 +48,67 @@ services:
       - .:/src
     ipc: host
 
+  # ---- lab: control plane, two servers, two simulated devices on one private network ----
+  control:
+    profiles: ["lab"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lsl-wardline:latest
+    command: ["control"]
+    environment:
+      WARDLINE_LISTEN: ":8080"
+      WARDLINE_PUBLIC_URL: http://control:8080
+      WARDLINE_DATA: /var/lib/wardline
+    volumes:
+      - control-data:/var/lib/wardline
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  server-a:
+    <<: *lab-server
+    entrypoint: ["sh", "/lab-scripts/server.sh", "server-a"]
+    volumes:
+      - lab-shared:/lab
+      - ./lab:/lab-scripts:ro
+      - server-a-state:/var/lib/wardline
+
+  server-b:
+    <<: *lab-server
+    entrypoint: ["sh", "/lab-scripts/server.sh", "server-b"]
+    volumes:
+      - lab-shared:/lab
+      - ./lab:/lab-scripts:ro
+      - server-b-state:/var/lib/wardline
+
+  device-linux-1:
+    <<: *lab-device
+    entrypoint: ["sh", "/lab-scripts/device.sh", "device-linux-1"]
+
+  device-linux-2:
+    <<: *lab-device
+    entrypoint: ["sh", "/lab-scripts/device.sh", "device-linux-2"]
+
+  e2e:
+    image: wardline-dev:latest
+    profiles: ["lab"]
+    working_dir: /src
+    depends_on: [control]
+    environment:
+      LAB_CONTROL_URL: http://control:8080
+      LAB_DIR: /lab
+    volumes:
+      - .:/src
+      - gomod:/go/pkg/mod
+      - gobuild:/root/.cache/go-build
+      - lab-shared:/lab
+    command: ["go", "test", "-tags", "e2e", "-count=1", "-v", "-timeout", "300s", "./e2e/"]
+
 volumes:
   gomod:
   gobuild:
   pnpmstore:
+  control-data:
+  server-a-state:
+  server-b-state:
+  lab-shared:

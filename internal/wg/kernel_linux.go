@@ -156,3 +156,15 @@ func (k *Kernel) Remove(_ context.Context, name string) error {
 	}
 	return netlink.LinkDel(link)
 }
+
+// KernelAvailable reports whether this machine can create kernel WireGuard
+// interfaces, by creating and deleting a throwaway one.
+func KernelAvailable() bool {
+	const probe = "wgprobe0"
+	netlink.LinkDel(&netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: probe}})
+	if err := netlink.LinkAdd(&netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: probe}}); err != nil {
+		return false
+	}
+	netlink.LinkDel(&netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: probe}})
+	return true
+}

@@ -10,7 +10,7 @@ function Step($name, [scriptblock]$cmd) {
 }
 
 Step "build dev image" { docker compose -f compose.dev.yaml build dev }
-Step "gofmt" { docker compose -f compose.dev.yaml run --rm dev sh -c 'test -z "$(gofmt -l cmd internal e2e 2>/dev/null)" || { gofmt -l cmd internal e2e; exit 1; }' }
+Step "gofmt" { docker compose -f compose.dev.yaml run --rm dev sh scripts/check-fmt.sh }
 Step "go vet" { docker compose -f compose.dev.yaml run --rm dev go vet ./... }
 Step "go test" { docker compose -f compose.dev.yaml run --rm dev go test ./... }
 

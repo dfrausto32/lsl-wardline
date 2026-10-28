@@ -9,19 +9,26 @@ Everything is one program, `wardline`. On a Linux machine the best way to run it
 
 ## 1. Get the program onto the machine
 
-Build it from the `app` folder on any machine with Docker. This also builds the web app into it:
+Build everything from the `app` folder on any machine with Docker. This also builds the web app into the program:
 
-```bash
-docker build --platform linux/amd64 --target binary --output dist .
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/release.ps1
 ```
 
-Use `--platform linux/arm64` for an ARM server. The program is `dist/wardline`, one static file.
+It writes `dist/release/`:
 
-Copy `dist/wardline` and the `deploy/` folder to the machine (for example with `scp`) and put them in one folder:
+- `wardline-linux-install.tar.gz`: the Linux program with its service files and install script. This is what a Linux machine needs.
+- `wardline-linux-amd64`, `wardline-linux-arm64`, `wardline-windows-amd64.exe`: the bare programs.
+- `SHA256SUMS.txt`: checksums, so a copy can be checked.
+
+Copy the tarball to the machine (for example with `scp`) and unpack it into a folder:
 
 ```bash
-scp dist/wardline deploy/* you@your-server:~/wardline/
+scp dist/release/wardline-linux-install.tar.gz you@your-server:~/
+ssh you@your-server "mkdir -p wardline && tar -xzf wardline-linux-install.tar.gz -C wardline"
 ```
+
+Publishing these as a GitHub Release is one command once a repository exists; `release.ps1` prints it.
 
 ## 2. Start the control plane
 
@@ -50,6 +57,28 @@ Run it on the machine that devices will connect to, from the folder that holds t
 The server needs UDP port 51820 reachable from the internet. If your host or router blocks it, open that port.
 
 Your devices connect using an address you choose in the setup. If you own a domain, add a name such as `network.example.com` with an A record pointing at this machine's public IP. Moving to a new server later then means changing that one record.
+
+## 4. Add computers
+
+In the web app choose **Add a device**, pick whose it is, then **Windows** or **Linux**. Wardline shows one command with a one-time code. The computer makes its own security key and sends only the public half, so Wardline never sees the secret one. It then keeps itself connected, replaces its key every 90 days without anyone doing anything, follows the server if its address changes, and deletes its connection and keys by itself if you remove it in Wardline.
+
+**Linux:** unpack the same tarball on the computer and run the command Wardline shows:
+
+```bash
+sudo sh install-linux.sh agent https://wardline.example.com <one-time code>
+```
+
+**Windows:** first install [WireGuard for Windows](https://www.wireguard.com/install/) (Wardline uses it to run the connection). Copy `wardline-windows-amd64.exe` to the computer, open PowerShell **as administrator** in that folder and run the command Wardline shows, with the program's name in front:
+
+```powershell
+.\wardline-windows-amd64.exe agent install --control-url https://wardline.example.com --token <one-time code>
+```
+
+It copies the program to `C:\Program Files\Wardline`, keeps its keys in `C:\ProgramData\Wardline` (readable only by the system and administrators), creates a "Wardline" service that starts with Windows and restarts if it stops, and starts it. `wardline.exe agent uninstall` takes it off the computer again.
+
+Phones and Macs still use the official WireGuard app with a code or file.
+
+To make a computer refresh its security right now instead of waiting (for example to test it): `wardline agent refresh` on that computer.
 
 ## Running and checking the services
 

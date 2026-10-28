@@ -49,3 +49,6 @@ Goal: a computer joins with one click, keeps its own private key, refreshes it s
 | 2.9 | Release build and where installers are published | `scripts/release.ps1` |
 
 Phase 2 is done when the agent items in `specs/ACCEPTANCE.md` pass (to be added with the table) and the Windows manual check is recorded. Then stop and wait for Dylan.
+
+### Phase 2 status (2026-10-28)
+2.0 to 2.9 are built and committed; tests pass in the container and the lab. Not done and needing Dylan: the Windows pieces have not run on Windows (manual check M6), and publishing to GitHub Releases waits for a repository. Details and every deviation from the specs are in `BLOCKED.md` ("Phase 2 spec notes"). Phase 3 is deferred indefinitely.

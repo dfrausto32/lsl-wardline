@@ -10,7 +10,11 @@ ENV CGO_ENABLED=0 GOFLAGS=-buildvcs=false
 WORKDIR /build
 COPY . .
 COPY --from=web /src/internal/webui/dist/ ./internal/webui/dist/
-RUN go build -trimpath -ldflags "-s -w" -o /out/wardline ./cmd/wardline
+# Cross-compiles for any system without emulation: docker build --build-arg GOOS=windows --build-arg GOARCH=amd64 ...
+ARG GOOS=linux
+ARG GOARCH=amd64
+ARG VERSION=dev
+RUN GOOS=$GOOS GOARCH=$GOARCH go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o /out/wardline ./cmd/wardline
 
 # Just the program, for installing without Docker: docker build --target binary --output dist .
 FROM scratch AS binary

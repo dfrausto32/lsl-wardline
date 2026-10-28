@@ -25,7 +25,7 @@
 3. The no-private-keys scan covers agent devices (database, logs, API responses).
 4. An agent keeps working through a silent key refresh with no gap, and a failed refresh leaves the old key working and shows an attention card.
 5. Removing an agent device ends its access to the server and to its instructions within seconds.
-6. Lab end-to-end passes with agent devices (Linux), including a server address change that the agents follow.
+6. Lab end-to-end passes with agent devices (Linux): connect, a silent key refresh with traffic still flowing, and removal that ends access and deletes the agent's keys. (A server address change is covered by unit tests only until Phase 4 gives the lab a second server.)
 7. The Windows agent and installer cross-compile; manual check M6 below.
 - M6 (Dylan, real Windows machine): install with the one-click installer, confirm it connects, shows as Connected, survives a reboot, and a removed device loses access.
 

@@ -90,6 +90,14 @@ export async function serverTunnelIP(page: Page): Promise<string> {
   return base.join(".");
 }
 
+/** Hands the setup code from the command on screen to one of the lab's computers that runs the real agent. */
+export async function connectLabAgent(page: Page, dev: string, command: string) {
+  const token = command.trim().split(/\s+/).pop();
+  expect(token, "the setup command ends with the one-time code").toBeTruthy();
+  writeLab(`${dev}.token`, token!);
+  writeLab(`${dev}.target`, `${await serverTunnelIP(page)}\n`);
+}
+
 /** Hands a downloaded config file to one of the lab's simulated devices. */
 export async function connectLabDevice(page: Page, dev: string, configText: string) {
   writeLab(`${dev}.conf`, configText);

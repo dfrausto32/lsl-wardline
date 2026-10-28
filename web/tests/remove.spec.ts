@@ -3,7 +3,7 @@ import { lastOK, review, signIn } from "./helpers";
 import { fmt, primary } from "../src/strings";
 
 const d = primary.device;
-const NAME = "Sam's Linux computer 2";
+const NAME = "Sam's Mac 2";
 
 test.beforeEach(async ({ page }) => {
   await signIn(page);
@@ -59,11 +59,11 @@ test("remove access asks first, says what happens, and takes effect within secon
   await page.waitForTimeout(4000);
   expect(lastOK("device-linux-1")!.getTime()).toBeLessThan(removedAt + 2000);
   expect(fresh("device-linux-2")).toBeTruthy();
-  await expect(page.getByRole("link", { name: /Alex's Linux computer/ })).toContainText(primary.status.connected);
+  await expect(page.getByRole("link", { name: /Alex's Mac/ })).toContainText(primary.status.connected);
 
   // It shows up in Activity, and the old page says the device is gone.
   await page.goto("/activity");
-  await expect(page.getByText("Sam's Linux computer 2 was removed.")).toBeVisible();
+  await expect(page.getByText("Sam's Mac 2 was removed.")).toBeVisible();
 });
 
 test("a removed device's page explains it is gone", async ({ page }) => {

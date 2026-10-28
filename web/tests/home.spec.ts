@@ -23,7 +23,7 @@ test("Home lists people and their devices with plain status (UX flow 3)", async 
   const iphone = page.getByRole("link", { name: /Sam's iPhone/ });
   await expect(iphone).toContainText(primary.status.waiting);
   await expect(iphone).toContainText(primary.status.never);
-  await expect(page.getByRole("link", { name: /Alex's Linux computer/ })).toContainText(primary.status.connected, { timeout: 30_000 });
+  await expect(page.getByRole("link", { name: /Alex's Mac/ })).toContainText(primary.status.connected, { timeout: 30_000 });
 
   // A phone that has not connected yet is never an alarm.
   await expect(page.getByRole("region", { name: h.attentionRegion })).toHaveCount(0);
@@ -63,14 +63,14 @@ test("Activity is a plain-language timeline with filter and export (UX flow 8)",
   const list = page.locator("ol.timeline");
   await expect(list).toContainText("Laney Office");
   await expect(list).toContainText("added Sam's iPhone.");
-  await expect(list).toContainText("Alex's Linux computer connected for the first time.");
-  await expect(list).toContainText("Sam's Linux computer 2 connected for the first time.");
+  await expect(list).toContainText("Alex's Mac connected for the first time.");
+  await expect(list).toContainText("Sam's Mac 2 connected for the first time.");
   await review(page, "activity");
 
   // Filter by a person.
   await page.getByLabel(primary.activity.filterLabel).selectOption({ label: "Alex" });
   await expect(list.locator("li").filter({ hasText: "Sam's iPhone" })).toHaveCount(0);
-  await expect(list).toContainText("Alex's Linux computer");
+  await expect(list).toContainText("Alex's Mac");
 
   // Export.
   const link = page.getByRole("link", { name: primary.activity.exportCsv });
@@ -78,7 +78,7 @@ test("Activity is a plain-language timeline with filter and export (UX flow 8)",
   const [download] = await Promise.all([page.waitForEvent("download"), link.click()]);
   const csv = fs.readFileSync((await download.path())!, "utf8");
   expect(csv.split("\n")[0]).toBe("When,Who,What happened");
-  expect(csv).toContain("Alex's Linux computer");
+  expect(csv).toContain("Alex's Mac");
   expect(csv).not.toContain("Sam's iPhone");
 
   // Times are relative with the exact time on hover.

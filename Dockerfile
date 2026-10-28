@@ -12,6 +12,10 @@ COPY . .
 COPY --from=web /src/internal/webui/dist/ ./internal/webui/dist/
 RUN go build -trimpath -ldflags "-s -w" -o /out/wardline ./cmd/wardline
 
+# Just the program, for installing without Docker: docker build --target binary --output dist .
+FROM scratch AS binary
+COPY --from=build /out/wardline /wardline
+
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates iproute2 \
  && rm -rf /var/lib/apt/lists/*

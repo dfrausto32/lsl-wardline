@@ -1,0 +1,30 @@
+[Unit]
+Description=Wardline control plane (the web app)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=wardline
+Group=wardline
+EnvironmentFile=/etc/wardline/control.env
+Environment=WARDLINE_DATA=/var/lib/wardline-control
+ExecStart=/usr/local/bin/wardline control
+Restart=on-failure
+RestartSec=3
+
+StateDirectory=wardline-control
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

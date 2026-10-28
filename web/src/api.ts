@@ -73,7 +73,7 @@ export interface ServerSummary {
 export interface NewServer {
   id: string;
   name: string;
-  install: { docker: string; compose: string };
+  install: { linux: string; docker: string; compose: string };
 }
 
 export interface AddedDevice {

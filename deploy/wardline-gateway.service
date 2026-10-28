@@ -1,0 +1,30 @@
+[Unit]
+Description=Wardline server (accepts your devices)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=wardline
+Group=wardline
+EnvironmentFile=/etc/wardline/gateway.env
+Environment=WARDLINE_STATE_DIR=/var/lib/wardline-gateway
+ExecStart=/usr/local/bin/wardline gateway
+Restart=on-failure
+RestartSec=3
+
+# Needs to create a network interface, nothing else.
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+StateDirectory=wardline-gateway
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

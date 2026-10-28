@@ -17,7 +17,7 @@ FROM scratch AS binary
 COPY --from=build /out/wardline /wardline
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates iproute2 \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates iproute2 iputils-ping \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/wardline /usr/local/bin/wardline
 VOLUME /var/lib/wardline

@@ -610,8 +610,10 @@ func (a *Agent) Run(ctx context.Context) error {
 		}
 	})
 	tick(a.cfg.RefreshCheckEvery, func() {
-		if err := a.RefreshIfDue(runCtx); err != nil && runCtx.Err() == nil {
-			a.cfg.Log.Warn("security refresh", "error", err.Error())
+		for _, f := range []func(context.Context) error{a.RefreshIfRequested, a.RefreshIfDue} {
+			if err := f(runCtx); err != nil && runCtx.Err() == nil {
+				a.cfg.Log.Warn("security refresh", "error", err.Error())
+			}
 		}
 	})
 
@@ -651,4 +653,26 @@ func (a *Agent) Run(ctx context.Context) error {
 	default:
 	}
 	return ctx.Err()
+}
+
+// ---- refresh on request ----
+
+const refreshTrigger = "refresh-now"
+
+// RequestRefresh asks the agent running with this state folder to refresh its security soon.
+func RequestRefresh(stateDir string) error {
+	if err := os.MkdirAll(stateDir, 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(stateDir, refreshTrigger), []byte("now\n"), 0o600)
+}
+
+// RefreshIfRequested refreshes once if RequestRefresh was called since the last time.
+func (a *Agent) RefreshIfRequested(ctx context.Context) error {
+	p := filepath.Join(a.cfg.StateDir, refreshTrigger)
+	if _, err := os.Stat(p); err != nil {
+		return nil
+	}
+	os.Remove(p)
+	return a.Refresh(ctx)
 }

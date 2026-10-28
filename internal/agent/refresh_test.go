@@ -181,3 +181,29 @@ func TestRefreshStartsOnItsOwnWhenTheControlPlaneSaysItIsDue(t *testing.T) {
 		t.Fatal("refreshed before it was due")
 	}
 }
+
+func TestRefreshCanBeAskedForByHandAndHappensOnce(t *testing.T) {
+	r := newRig(t)
+	r.connectOnNewKey()
+	ctx := context.Background()
+	r.a.Sync(ctx)
+	before := r.a.identity().PublicKey
+
+	if err := r.a.RefreshIfRequested(ctx); err != nil || r.a.identity().PublicKey != before {
+		t.Fatalf("nothing was asked for, yet: %v", err)
+	}
+	if err := RequestRefresh(r.dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.a.RefreshIfRequested(ctx); err != nil {
+		t.Fatal(err)
+	}
+	after := r.a.identity().PublicKey
+	if after == before {
+		t.Fatal("no refresh happened")
+	}
+	// The request is used up.
+	if err := r.a.RefreshIfRequested(ctx); err != nil || r.a.identity().PublicKey != after {
+		t.Fatalf("it refreshed again by itself: %v", err)
+	}
+}

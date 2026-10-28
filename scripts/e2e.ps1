@@ -9,14 +9,14 @@ $down = Join-Path $PSScriptRoot "lab-down.ps1"
 & powershell -ExecutionPolicy Bypass -File $down -Clean | Out-Null
 docker compose -f compose.dev.yaml build dev control
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-docker @compose up -d control server-a server-b device-linux-1 device-linux-2
+docker @compose up -d control server-a server-b device-linux-1 device-linux-2 agent-1 agent-2
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 docker @compose run --rm e2e
 $code = $LASTEXITCODE
 if ($code -ne 0) {
     Write-Host "---- lab logs (last lines) ----"
-    docker @compose logs --tail 40 control server-a device-linux-1 device-linux-2
+    docker @compose logs --tail 40 control server-a device-linux-1 device-linux-2 agent-1 agent-2
 }
 if (-not $Keep) { & powershell -ExecutionPolicy Bypass -File $down -Clean | Out-Null }
 exit $code

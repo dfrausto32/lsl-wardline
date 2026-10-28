@@ -4,5 +4,5 @@ $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 docker compose -f compose.dev.yaml build dev control
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-docker compose -f compose.dev.yaml --profile lab up -d control server-a server-b device-linux-1 device-linux-2
+docker compose -f compose.dev.yaml --profile lab up -d control server-a server-b device-linux-1 device-linux-2 agent-1 agent-2
 exit $LASTEXITCODE

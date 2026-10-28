@@ -1,0 +1,31 @@
+[Unit]
+Description=Wardline agent (connects this computer to your private network)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=wardline
+Group=wardline
+EnvironmentFile=/etc/wardline/agent.env
+Environment=WARDLINE_STATE_DIR=/var/lib/wardline-agent
+ExecStart=/usr/local/bin/wardline agent
+# A removed computer exits cleanly (status 0), so it is not restarted. A real failure is.
+Restart=on-failure
+RestartSec=3
+
+# Needs to create a network interface, nothing else.
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+StateDirectory=wardline-agent
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

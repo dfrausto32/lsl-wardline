@@ -23,6 +23,10 @@ func Redact(s string) string {
 	return keyShaped.ReplaceAllString(s, marker)
 }
 
+// IsSensitiveName reports whether a field called name should never have its
+// value logged or recorded (passwords, tokens, private and preshared keys).
+func IsSensitiveName(name string) bool { return sensitive(name) }
+
 func sensitive(name string) bool {
 	n := strings.ToLower(name)
 	if strings.Contains(n, "public") {

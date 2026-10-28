@@ -132,7 +132,7 @@ func (s *Server) createAgentDevice(w http.ResponseWriter, r *http.Request, admin
 func (s *Server) agentInstall(platform, token string) map[string]string {
 	url := s.d.PublicURL
 	if platform == "windows" {
-		return map[string]string{"command": fmt.Sprintf("wardline.exe agent enroll --control-url %s --token %s", url, token)}
+		return map[string]string{"command": fmt.Sprintf("wardline.exe agent install --control-url %s --token %s", url, token)}
 	}
 	return map[string]string{"command": fmt.Sprintf("sudo sh install-linux.sh agent %s %s", url, token)}
 }

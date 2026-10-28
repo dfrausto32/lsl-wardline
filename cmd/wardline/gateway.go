@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/spf13/cobra"
 
@@ -62,7 +64,13 @@ func chooseBackend(want string) (wg.Backend, string, error) {
 		return k, "kernel", err
 	case "userspace":
 		return wg.NewUserspace(), "userspace", nil
+	case "wireguard-app":
+		return wg.NewWireGuardApp(filepath.Join(defaultAgentDir(), "tunnels")), "official WireGuard for Windows", nil
 	case "auto", "":
+		if runtime.GOOS == "windows" {
+			// On Windows the tunnel is run by the official WireGuard program (see docs/WINDOWS-TUNNEL.md).
+			return wg.NewWireGuardApp(filepath.Join(defaultAgentDir(), "tunnels")), "official WireGuard for Windows", nil
+		}
 		if wg.KernelAvailable() {
 			if k, err := wg.NewKernel(); err == nil {
 				return k, "kernel", nil
@@ -70,5 +78,5 @@ func chooseBackend(want string) (wg.Backend, string, error) {
 		}
 		return wg.NewUserspace(), "userspace", nil
 	}
-	return nil, "", fmt.Errorf("unknown backend %q (use auto, kernel or userspace)", want)
+	return nil, "", fmt.Errorf("unknown backend %q (use auto, kernel, userspace or wireguard-app)", want)
 }

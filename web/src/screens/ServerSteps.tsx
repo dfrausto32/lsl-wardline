@@ -40,8 +40,9 @@ export function CommandStep({ onOnline }: { onOnline: () => void }) {
   const s = primary.setup;
   const [created, setCreated] = useState<NewServer | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"docker" | "compose">("docker");
+  const [tab, setTab] = useState<"linux" | "docker" | "compose">("linux");
   const started = useRef(false);
+  const tabLabel = { linux: s.linuxTab, docker: s.commandTab, compose: s.composeTab };
 
   useEffect(() => {
     if (started.current) return;
@@ -66,10 +67,12 @@ export function CommandStep({ onOnline }: { onOnline: () => void }) {
         <>
           <p>{s.commandHelp}</p>
           <div role="tablist" aria-label={s.commandTitle} className="tabs">
+            <button role="tab" aria-selected={tab === "linux"} onClick={() => setTab("linux")}>{s.linuxTab}</button>
             <button role="tab" aria-selected={tab === "docker"} onClick={() => setTab("docker")}>{s.commandTab}</button>
             <button role="tab" aria-selected={tab === "compose"} onClick={() => setTab("compose")}>{s.composeTab}</button>
           </div>
-          <CopyBox label={tab === "docker" ? s.commandTab : s.composeTab} text={tab === "docker" ? created.install.docker : created.install.compose} />
+          <CopyBox label={tabLabel[tab]} text={created.install[tab]} />
+          {tab === "linux" && <p className="help">{s.linuxHelp}</p>}
           <p className="help">{s.commandPort}</p>
         </>
       )}

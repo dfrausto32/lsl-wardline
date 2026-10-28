@@ -55,7 +55,8 @@ func (s *Server) installInstructions(token string) map[string]string {
 volumes:
   wardline-server:
 `, defaultListenPort, defaultListenPort, url, token)
-	return map[string]string{"docker": docker, "compose": compose}
+	linux := fmt.Sprintf("sudo sh install-linux.sh gateway %s %s", url, token)
+	return map[string]string{"linux": linux, "docker": docker, "compose": compose}
 }
 
 func (s *Server) handleServerCreate(w http.ResponseWriter, r *http.Request, adminID string) {

@@ -551,3 +551,22 @@ func TestStaticFallbackServesTheWebApp(t *testing.T) {
 		t.Fatalf("no static handler configured should 404, got %d", rec.Code)
 	}
 }
+
+func TestInstallInstructionsIncludeALinuxServiceCommand(t *testing.T) {
+	h := newHarness(t)
+	h.setup()
+	var created struct {
+		Install map[string]string `json:"install"`
+	}
+	h.mustCall("POST", "/api/servers", nil, &created, 201)
+	cmd := created.Install["linux"]
+	docker := tokenRe.FindStringSubmatch(created.Install["docker"])[1]
+	for _, want := range []string{"install-linux.sh", "gateway", docker} {
+		if !strings.Contains(cmd, want) {
+			t.Errorf("linux command %q is missing %q", cmd, want)
+		}
+	}
+	if strings.Contains(cmd, "\n") {
+		t.Errorf("the linux command should be one line: %q", cmd)
+	}
+}

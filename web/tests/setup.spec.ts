@@ -55,7 +55,8 @@ test("first-run setup, one screen at a time (UX flow 1)", async ({ page }) => {
   await expect(page.getByRole("heading", { name: s.commandTitle })).toBeVisible();
   await expect(page.getByText(s.waiting)).toBeVisible();
   const command = await page.locator("pre").first().innerText();
-  const token = /WARDLINE_ENROLL_TOKEN=(\S+)/.exec(command)?.[1];
+  expect(command, "the Linux service command is shown first").toContain("install-linux.sh gateway");
+  const token = /install-linux\.sh gateway \S+ (\S+)/.exec(command)?.[1];
   expect(token, "the command carries the one-time code").toBeTruthy();
   await review(page, "setup-6-command-waiting");
 

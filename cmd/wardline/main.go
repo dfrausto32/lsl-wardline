@@ -29,7 +29,7 @@ func newRoot() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(controlCmd(), gatewayCmd(), auditCmd(), &cobra.Command{
+	root.AddCommand(controlCmd(), gatewayCmd(), agentCmd(), auditCmd(), &cobra.Command{
 		Use:   "version",
 		Short: "Print the version",
 		Run:   func(cmd *cobra.Command, _ []string) { fmt.Fprintln(cmd.OutOrStdout(), version) },

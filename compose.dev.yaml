@@ -98,6 +98,20 @@ services:
     <<: *lab-device
     entrypoint: ["sh", "/lab-scripts/device.sh", "device-linux-2"]
 
+  agent-1:
+    <<: *lab-server
+    entrypoint: ["sh", "/lab-scripts/agent.sh", "agent-1"]
+    volumes:
+      - lab-shared:/lab
+      - ./lab:/lab-scripts:ro
+
+  agent-2:
+    <<: *lab-server
+    entrypoint: ["sh", "/lab-scripts/agent.sh", "agent-2"]
+    volumes:
+      - lab-shared:/lab
+      - ./lab:/lab-scripts:ro
+
   e2e:
     image: wardline-dev:latest
     profiles: ["lab"]

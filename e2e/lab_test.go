@@ -235,4 +235,7 @@ func TestLabEndToEnd(t *testing.T) {
 		}
 	}
 	fmt.Println(all.String())
+
+	// 9. Computers that set themselves up with the agent: connect, refresh their own key, and clean up when removed.
+	agentSteps(t, l, serverTunnelIP)
 }

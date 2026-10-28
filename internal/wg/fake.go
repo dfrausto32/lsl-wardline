@@ -104,3 +104,14 @@ func (f *Fake) SetHandshake(name, publicKey string, at time.Time) {
 	defer f.mu.Unlock()
 	f.ifaces[name].peers[publicKey].LastHandshake = at
 }
+
+// Interface returns the interface settings last applied, so tests can check them.
+func (f *Fake) Interface(name string) (InterfaceConfig, bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	i, ok := f.ifaces[name]
+	if !ok {
+		return InterfaceConfig{}, false
+	}
+	return i.cfg, true
+}

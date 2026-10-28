@@ -24,6 +24,14 @@ func SentenceAdminSignedIn(actor string) string {
 	return fmt.Sprintf("%s signed in.", actor)
 }
 
+func SentenceDeviceRefreshed(device string) string {
+	return fmt.Sprintf("%s refreshed its security.", device)
+}
+
+func SentenceDeviceRefreshFailed(device string) string {
+	return fmt.Sprintf("%s could not refresh its security and kept its old one.", device)
+}
+
 func SentenceDeviceSetUp(device string) string {
 	return fmt.Sprintf("%s was set up and is ready to connect.", device)
 }

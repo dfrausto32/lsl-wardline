@@ -186,7 +186,8 @@ func (s *Server) handleAgentEnroll(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, http.StatusBadRequest, "That security code is already in use by another device.")
 		return
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE devices SET auth_token_hash=?, agent_version=? WHERE id=?`, tokenHash(authTok), in.AgentVersion, deviceID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE devices SET auth_token_hash=?, agent_version=?, refresh_due_at=? WHERE id=?`, tokenHash(authTok), in.AgentVersion,
+		s.now().Add(agentRefreshAge).Format(time.RFC3339), deviceID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -241,10 +242,12 @@ func (s *Server) buildAgentState(ctx context.Context, deviceID string, version i
 	if err != nil {
 		return agent.DesiredState{}, err
 	}
-	var ip string
+	var ip, myKey string
+	var due sql.NullString
 	var ct, nonce []byte
-	if err := s.d.Store.DB().QueryRowContext(ctx, `SELECT d.tunnel_ip, p.ciphertext, p.nonce FROM devices d LEFT JOIN preshared_keys p ON p.device_id=d.id WHERE d.id=?`, deviceID).
-		Scan(&ip, &ct, &nonce); err != nil {
+	if err := s.d.Store.DB().QueryRowContext(ctx, `SELECT d.tunnel_ip, COALESCE(k.public_key,''), d.refresh_due_at, p.ciphertext, p.nonce FROM devices d
+		LEFT JOIN device_keys k ON k.device_id=d.id AND k.state='active' LEFT JOIN preshared_keys p ON p.device_id=d.id WHERE d.id=?`, deviceID).
+		Scan(&ip, &myKey, &due, &ct, &nonce); err != nil {
 		return agent.DesiredState{}, err
 	}
 	var serverPub string
@@ -260,7 +263,7 @@ func (s *Server) buildAgentState(ctx context.Context, deviceID string, version i
 		Version: version, IssuedAt: s.now(), DeviceID: deviceID,
 		Address:         netip.PrefixFrom(addr, prefix.Bits()).String(),
 		ServerPublicKey: serverPub, Endpoint: net.JoinHostPort(n.ServerAddress, strconv.Itoa(port)),
-		AllowedIPs: []string{prefix.String()}, Keepalive: computerKeepalive,
+		AllowedIPs: []string{prefix.String()}, Keepalive: computerKeepalive, PublicKey: myKey, RefreshDue: parseTime(due),
 	}
 	if len(ct) > 0 {
 		pt, err := s.d.Box.Open(ct, nonce)

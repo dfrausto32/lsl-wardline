@@ -138,6 +138,9 @@ func (s *Server) routes() {
 	// Computers that set themselves up
 	m.HandleFunc("POST /agent/v1/enroll", s.handleAgentEnroll)
 	m.HandleFunc("GET /agent/v1/desired", s.agentAuth(s.handleAgentDesired))
+	m.HandleFunc("POST /agent/v1/report", s.agentAuth(s.handleAgentReport))
+	m.HandleFunc("POST /agent/v1/refresh", s.agentAuth(s.handleAgentRefresh))
+	m.HandleFunc("POST /agent/v1/refresh/rollback", s.agentAuth(s.handleAgentRollback))
 	if s.d.Static != nil {
 		m.Handle("/", s.d.Static)
 	}

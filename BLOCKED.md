@@ -14,25 +14,27 @@ Checked in task 1.0 on 2026-10-28 (Docker 29.6.2, Docker Desktop VM): `ip link a
 M1 to M5 in `specs/ACCEPTANCE.md` need Dylan, an iPhone, a Windows machine, and ideally one non-technical tester.
 
 ### Server address for real use
-Need to know whether Dylan has a domain or subdomain (for example on laneysoftwarelogistics.com) to use as the server address for real testing. Not needed for the lab.
+Dylan owns laneysoftwarelogistics.com but has no domain set aside for this. Plan: add a subdomain such as `network.laneysoftwarelogistics.com` with an A record pointing at the server's public IP, at whoever hosts the domain's DNS. Needs Dylan, once a real server exists. Not needed for the lab.
+
+### How the server is installed (decision pending)
+Installs are currently documented as a container image (`lsl-wardline:latest`, no registry). Dylan asked whether systemd-style services could be used instead. The binary is a single static file, so a systemd unit is a natural fit for a plain Linux server. Waiting on Dylan's choice before changing `docs/INSTALL.md` or adding anything to the repo.
 
 ### Phase 3 prerequisites (not needed yet)
 A Mac with Xcode (or a cloud Mac build service) and an Apple Developer Program membership, for the native iPhone app.
 
 ### Decisions
 - Admin sign-in: password + authenticator app assumed for v1. Passkeys later if wanted.
-- UI styling toolkit: undecided. Ask before choosing.
+- UI styling toolkit: plain CSS (decided).
 - Where the control plane will live in production: recommend a small separate host so a server move never takes the control plane with it. Same-host setups are allowed, with the limitation noted in BUSINESS-RULES.
 - Single-tenant for now. Assumed unless Dylan says otherwise.
 - Windows tunnel approach: decided at the start of phase 2.
+- Git branch stays `master` (decided).
+- "Send me a link" for phones (UX flow 2): left out of v1 (decided). If wanted later it needs a sealed, single-use, short-lived handoff, specified first.
+- Refresh security for phones (UX flow 6): the Phase 1 behaviour (gentle card, button opens "Add a device") is accepted. A replace-after-first-connection flow goes on the Phase 2 task list.
 
-## Spec notes (flagged for Dylan, no action needed unless you disagree)
-- `devices.expires_at` added (BUSINESS-RULES "Expiry" needs it; DATA-MODEL.md does not list it). Task 1.1.
-- `modernc.org/sqlite` pinned to v1.38.2: the latest (v1.61) requires Go 1.26, the dev image uses Go 1.24. Task 1.1.
-- Git repo is on branch `master`; CLAUDE.md names `main`. Left as is; commits are on `master`.
-- `servers.auth_token_hash` column added (migration 0003): a server needs a bearer token to talk to the control plane and DATA-MODEL.md has nowhere to keep its hash. Task 1.7.
-- Install commands reference the image name `lsl-wardline:latest`. No registry is decided; tell me where images should be published (for example ghcr.io under an LSL account) before real use. Task 1.7.
-- Not done in 1.7, on purpose: a used TOTP code can be replayed inside its 90-second window (no last-used-counter stored). Small, but noted.
-- UX.md conflict (flagged, not silently resolved): flow 1 says the address field accepts "a name like `vpn.example.com`", but "VPN" is on the never-say list. The strings lint stays strict, so the UI example is `network.example.com`. Task 1.8.
-- UX flow 2 mentions a "Send me a link" option for a person's own phone. Not built: it would require keeping the one-time code on the server until opened, which conflicts with "private keys stay on the device" and "shown once". Needs your decision. Task 1.9.
-- UX flow 6 (Refresh security for phones) is not in the Phase 1 task table. The details page and Home show the gentle card after 180 days and its button opens "Add a device" for the same person; the old device is then removed by hand. A proper "new code replaces old code after first connection" flow is not built. Task 1.10.
+## Spec notes (resolved, kept for the record)
+- `devices.expires_at`, `servers.auth_token_hash` and `admin_users.totp_last_counter` are now in `specs/DATA-MODEL.md`.
+- `specs/UX.md` flow 1 now uses `network.example.com` as its example address (the old one contained a banned word).
+- Go and SQLite bumped: dev and production images use Go 1.26, `modernc.org/sqlite` is v1.61.0.
+- Authenticator codes can no longer be reused (migration 0004). Two existing tests were changed to wait one 30-second step after switching two-step on, because the code used to enable it is now spent. This is the intended behaviour, not a weakening of the tests.
+- Install commands still use the placeholder image name `lsl-wardline:latest` until the install-method decision above is made.

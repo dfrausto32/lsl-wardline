@@ -1,5 +1,5 @@
 # Development image: Go toolchain, WireGuard tools, linter, Node + pnpm.
-FROM golang:1.24-bookworm
+FROM golang:1.26-bookworm
 
 ARG NODE_VERSION=22.11.0
 ARG GOLANGCI_LINT_VERSION=v1.64.8

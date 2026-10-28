@@ -121,18 +121,26 @@ func TOTPCode(secret string, t time.Time) string {
 
 // ValidTOTP accepts the current code and the one before or after it (clock drift).
 func ValidTOTP(secret, code string, now time.Time) bool {
+	_, ok := MatchTOTP(secret, code, now)
+	return ok
+}
+
+// MatchTOTP is ValidTOTP that also says which 30-second step the code belongs to,
+// so the caller can refuse to accept the same step twice.
+func MatchTOTP(secret, code string, now time.Time) (int64, bool) {
 	key, err := b32.DecodeString(strings.ToUpper(secret))
 	if err != nil || len(code) != 6 {
-		return false
+		return 0, false
 	}
-	c := uint64(now.Unix() / 30)
+	c := now.Unix() / 30
+	var hit int64
 	ok := false
 	for _, d := range []int64{-1, 0, 1} {
-		if subtle.ConstantTimeCompare([]byte(totpAt(key, uint64(int64(c)+d))), []byte(code)) == 1 {
-			ok = true
+		if subtle.ConstantTimeCompare([]byte(totpAt(key, uint64(c+d))), []byte(code)) == 1 {
+			hit, ok = c+d, true
 		}
 	}
-	return ok
+	return hit, ok
 }
 
 // TOTPURL is what authenticator apps read from a QR code.
@@ -286,7 +294,8 @@ func (a *Accounts) Authenticate(ctx context.Context, email, password, code strin
 func (a *Accounts) AuthenticateAt(ctx context.Context, email, password, code string, now time.Time) (string, error) {
 	var id, hash string
 	var totp []byte
-	err := a.db.QueryRowContext(ctx, `SELECT id, password_hash, totp_secret_ciphertext FROM admin_users WHERE email=?`, normEmail(email)).Scan(&id, &hash, &totp)
+	var last int64
+	err := a.db.QueryRowContext(ctx, `SELECT id, password_hash, totp_secret_ciphertext, totp_last_counter FROM admin_users WHERE email=?`, normEmail(email)).Scan(&id, &hash, &totp, &last)
 	if err != nil {
 		VerifyPassword(dummyHash, password)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -308,7 +317,16 @@ func (a *Accounts) AuthenticateAt(ctx context.Context, email, password, code str
 		if err != nil {
 			return "", err
 		}
-		if !ValidTOTP(string(secret), code, now) {
+		step, ok := MatchTOTP(string(secret), code, now)
+		if !ok || step <= last {
+			return "", ErrBadLogin
+		}
+		// The WHERE clause makes this atomic: of two sign-ins using one code, only one updates a row.
+		res, err := a.db.ExecContext(ctx, `UPDATE admin_users SET totp_last_counter=? WHERE id=? AND totp_last_counter<?`, step, id, step)
+		if err != nil {
+			return "", err
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
 			return "", ErrBadLogin
 		}
 	}
@@ -326,14 +344,15 @@ func (a *Accounts) EnableTOTP(ctx context.Context, id, secret, code string, now 
 	if a.box == nil {
 		return errors.New("two-step sign-in is not available on this server")
 	}
-	if !ValidTOTP(secret, code, now) {
+	step, ok := MatchTOTP(secret, code, now)
+	if !ok {
 		return errors.New("That code did not match. Check the 6-digit code in your authenticator app and try again.")
 	}
 	blob, err := a.box.SealPacked([]byte(secret))
 	if err != nil {
 		return err
 	}
-	_, err = a.db.ExecContext(ctx, `UPDATE admin_users SET totp_secret_ciphertext=? WHERE id=?`, blob, id)
+	_, err = a.db.ExecContext(ctx, `UPDATE admin_users SET totp_secret_ciphertext=?, totp_last_counter=? WHERE id=?`, blob, step, id)
 	return err
 }
 

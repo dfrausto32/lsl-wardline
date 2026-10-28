@@ -238,11 +238,47 @@ func TestTOTPIsRequiredOnceEnabledAndStoredEncrypted(t *testing.T) {
 	if _, err := a.Authenticate(ctx, "maria@example.com", "a long enough passphrase", "000000"); !errors.Is(err, ErrBadLogin) {
 		t.Fatalf("wrong code: %v", err)
 	}
-	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", TOTPCode(secret, now), now); err != nil {
+	// One step later: the code used to enable two-step is now spent (see TestTOTPCodeCannotBeUsedTwice).
+	next := now.Add(30 * time.Second)
+	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", TOTPCode(secret, next), next); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.EnableTOTP(ctx, id, secret, "000000", now); err == nil {
 		t.Fatal("enabling with a wrong code must fail")
+	}
+}
+
+func TestTOTPCodeCannotBeUsedTwice(t *testing.T) {
+	s := newStore(t)
+	box, _ := NewSecretBox(bytes.Repeat([]byte{3}, 32))
+	a := NewAccounts(s.DB(), box)
+	ctx := context.Background()
+	id, _ := a.Create(ctx, s.DB(), "maria@example.com", "a long enough passphrase")
+	secret, _ := NewTOTPSecret()
+	now := time.Unix(1_800_000_000, 0)
+	if err := a.EnableTOTP(ctx, id, secret, TOTPCode(secret, now), now); err != nil {
+		t.Fatal(err)
+	}
+	// The code used to switch two-step on is spent too.
+	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", TOTPCode(secret, now), now); !errors.Is(err, ErrBadLogin) {
+		t.Fatalf("the enrollment code was accepted again: %v", err)
+	}
+	later := now.Add(30 * time.Second)
+	code := TOTPCode(secret, later)
+	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", code, later); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", code, later); !errors.Is(err, ErrBadLogin) {
+		t.Fatalf("a used code was accepted again: %v", err)
+	}
+	// An older code from inside the drift window is also refused once a newer one was used.
+	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", TOTPCode(secret, now), later); !errors.Is(err, ErrBadLogin) {
+		t.Fatalf("an older code was accepted after a newer one: %v", err)
+	}
+	// The next code works.
+	next := later.Add(30 * time.Second)
+	if _, err := a.AuthenticateAt(ctx, "maria@example.com", "a long enough passphrase", TOTPCode(secret, next), next); err != nil {
+		t.Fatal(err)
 	}
 }
 

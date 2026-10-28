@@ -36,7 +36,7 @@ A test scans the UI string file and fails if any "never say" term appears outsid
 1. "Welcome to Wardline. Let's set up your private network." Name it (default suggestion).
 2. Create the admin sign-in (email + password, then optional authenticator app).
 3. "Where will your server live?" Choices: *On this computer / on a server I run* (shows one copy-paste command or a compose file) and *I'll do this later*.
-4. "What address will devices use to reach it?" Explains in one sentence, accepts a name like `vpn.example.com` or an IP address. If an IP is given, show a clear note: "If you change servers later, devices will need new codes. A name avoids that." Recommend a name.
+4. "What address will devices use to reach it?" Explains in one sentence, accepts a name like `network.example.com` or an IP address. If an IP is given, show a clear note: "If you change servers later, devices will need new codes. A name avoids that." Recommend a name.
 5. Live check: "Waiting for your server to check in..." then green check.
 6. Land on Home with a single card: "Add your first device".
 

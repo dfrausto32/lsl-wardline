@@ -46,6 +46,20 @@ function AttentionBanner({ a, navigate }: { a: Attention; navigate: (to: string)
       </Banner>
     );
   }
+  if (a.kind === "refresh_failed") {
+    return (
+      <Banner title={fmt(h.refreshFailedTitle, { name: a.device_name })} action={<Button variant="secondary" onClick={() => navigate(`/devices/${a.device_id}`)}>{h.refreshFailedButton}</Button>}>
+        {h.refreshFailedBody}
+      </Banner>
+    );
+  }
+  if (a.kind === "device_problem") {
+    return (
+      <Banner title={fmt(h.problemTitle, { name: a.device_name })} action={<Button variant="secondary" onClick={() => navigate(`/devices/${a.device_id}`)}>{h.problemButton}</Button>}>
+        {h.problem[a.problem] ?? h.problemOther}
+      </Banner>
+    );
+  }
   return (
     <Banner title={fmt(h.refreshTitle, { name: a.device_name })} action={<Button variant="secondary" onClick={() => navigate(`/devices/${a.device_id}`)}>{h.refreshButton}</Button>}>
       {h.refreshBody}

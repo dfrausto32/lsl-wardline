@@ -31,6 +31,7 @@ export interface Device {
   last_seen_at: string | null;
   added_at: string;
   refresh_due: boolean;
+  agent?: { version: string; problem: string; reported_at: string | null };
   advanced?: {
     public_key: string;
     address: string;
@@ -49,7 +50,9 @@ export interface Person {
 export type Attention =
   | { kind: "server_offline" }
   | { kind: "device_unseen_30_days"; device_id: string; device_name: string }
-  | { kind: "refresh_due"; device_id: string; device_name: string };
+  | { kind: "refresh_due"; device_id: string; device_name: string }
+  | { kind: "refresh_failed"; device_id: string; device_name: string }
+  | { kind: "device_problem"; device_id: string; device_name: string; problem: string };
 
 export interface Home {
   network: { name: string; server_address: string; server_address_kind: "name" | "ip" };
@@ -82,6 +85,13 @@ export interface AddedDevice {
   qr_png_base64: string;
   filename: string;
   app_link: string;
+}
+
+export interface AddedAgentDevice {
+  device: Device;
+  token: string;
+  expires_at: string;
+  install: { command: string };
 }
 
 export interface ActivityItem {
@@ -141,6 +151,7 @@ export const api = {
   addPerson: (name: string) => request<PersonSummary>("POST", "/api/people", { name }),
   device: (id: string) => request<Device>("GET", `/api/devices/${id}`),
   addDevice: (b: { person_id: string; platform: Platform }) => request<AddedDevice>("POST", "/api/devices", b),
+  addAgentDevice: (b: { person_id: string; platform: Platform }) => request<AddedAgentDevice>("POST", "/api/devices", { ...b, agent: true }),
   removeDevice: (id: string) => request<object>("DELETE", `/api/devices/${id}`),
   activity: (f: { person_id?: string; device_id?: string } = {}) => {
     const q = new URLSearchParams();

@@ -67,6 +67,13 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
         </dl>
       </Card>
 
+      {dev.agent?.problem && (
+        <Card className="soft">
+          <h2>{primary.home.problemTitle.replace("{name}", dev.name)}</h2>
+          <p>{primary.home.problem[dev.agent.problem] ?? primary.home.problemOther}</p>
+        </Card>
+      )}
+
       {dev.refresh_due && (
         <Card className="soft">
           <h2>{d.refreshTitle}</h2>
@@ -88,6 +95,7 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
             <div><dt>{advanced.address}</dt><dd>{adv.address}</dd></div>
             <div><dt>{advanced.received}</dt><dd>{formatBytes(adv.received_bytes)}</dd></div>
             <div><dt>{advanced.sent}</dt><dd>{formatBytes(adv.sent_bytes)}</dd></div>
+            {dev.agent?.version && <div><dt>{advanced.agentVersion}</dt><dd>{dev.agent.version}</dd></div>}
             {adv.last_address_seen && <div><dt>{advanced.lastEndpoint}</dt><dd>{adv.last_address_seen}</dd></div>}
           </dl>
         </details>

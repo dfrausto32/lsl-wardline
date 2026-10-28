@@ -19,5 +19,15 @@
 - M4. Install the admin web app to the iPhone home screen and complete Home and Remove access one-handed.
 - M5. Confirm a sleeping phone shows as "Not seen recently" with no alarm.
 
-## B. Later phases
+## B. Phase 2: device agents (all must be true; proposed with the task table, approved by Dylan 2026-10-28)
+1. `./scripts/verify.ps1` stays green.
+2. An agent device enrolls with a single-use code that expires in 24 hours; the control plane stores only a hash of the code and of the device's access token, and only the device's public key.
+3. The no-private-keys scan covers agent devices (database, logs, API responses).
+4. An agent keeps working through a silent key refresh with no gap, and a failed refresh leaves the old key working and shows an attention card.
+5. Removing an agent device ends its access to the server and to its instructions within seconds.
+6. Lab end-to-end passes with agent devices (Linux), including a server address change that the agents follow.
+7. The Windows agent and installer cross-compile; manual check M6 below.
+- M6 (Dylan, real Windows machine): install with the one-click installer, confirm it connects, shows as Connected, survives a reboot, and a removed device loses access.
+
+## C. Later phases
 Written when each phase starts. Server move acceptance includes a rehearsal in the lab with two servers and a rollback, then a real-hardware rehearsal.

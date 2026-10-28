@@ -260,8 +260,13 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 		PersonID string `json:"person_id"`
 		Platform string `json:"platform"`
 		Name     string `json:"name"`
+		Agent    bool   `json:"agent"`
 	}
 	if !s.decode(w, r, &in) {
+		return
+	}
+	if in.Agent {
+		s.createAgentDevice(w, r, adminID, in.PersonID, in.Platform, in.Name)
 		return
 	}
 	label, ok := platformLabels[in.Platform]

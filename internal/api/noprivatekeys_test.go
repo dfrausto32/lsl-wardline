@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"lsl-wardline/internal/auth"
+	"lsl-wardline/internal/gateway"
 	"lsl-wardline/internal/wg"
 )
 
@@ -65,6 +66,18 @@ func TestNoPrivateKeysAnywhere(t *testing.T) {
 		capture("GET", "/api/devices/"+a.Device["id"].(string))
 	}
 	secrets = append(secrets, begin.Secret)
+
+	// An agent device makes its own key. The control plane must never see the private half, and
+	// the enrollment code and the agent's access token are stored only as hashes.
+	ac := h.addAgentDevice(sam, "linux")
+	ae := h.enrollAgent(ac.Token)
+	var agentState gateway.Signed
+	h.mustAgent("GET", "/agent/v1/desired?since=-1", ae.resp.AuthToken, nil, &agentState, 200)
+	secrets = append(secrets, ae.priv, ac.Token, ae.resp.AuthToken)
+	capture("GET", "/api/devices/"+ac.Device["id"].(string))
+	if bytes.Contains(agentState.Payload, []byte(ae.priv)) {
+		t.Error("the instructions sent to an agent contain its private key")
+	}
 
 	// The server's own private key lives in its identity file and nowhere else.
 	idRaw, err := os.ReadFile(dir + "/identity.json")

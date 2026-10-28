@@ -135,6 +135,9 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /gateway/v1/enroll", s.handleGatewayEnroll)
 	m.HandleFunc("GET /gateway/v1/desired", s.gateway(s.handleGatewayDesired))
 	m.HandleFunc("POST /gateway/v1/report", s.gateway(s.handleGatewayReport))
+	// Computers that set themselves up
+	m.HandleFunc("POST /agent/v1/enroll", s.handleAgentEnroll)
+	m.HandleFunc("GET /agent/v1/desired", s.agentAuth(s.handleAgentDesired))
 	if s.d.Static != nil {
 		m.Handle("/", s.d.Static)
 	}

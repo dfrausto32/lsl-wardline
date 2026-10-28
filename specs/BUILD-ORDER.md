@@ -26,7 +26,26 @@ Phase 1 is done when `specs/ACCEPTANCE.md` section A passes. Then stop and wait 
 
 ## Later phases (task tables written when each phase starts)
 
-- **Phase 2: device agents.** Linux and Windows agents, one-click installers, silent security refresh, device-side health, DNS re-resolve. Decide the Windows tunnel approach at the start.
-- **Phase 3: iPhone app.** Native iOS app (Network Extension, WireGuardKit), scan-once enrollment, silent refresh. Needs a Mac with Xcode and an Apple Developer account.
+- **Phase 2: device agents.** Linux and Windows agents, one-click installers, silent security refresh, device-side health, DNS re-resolve. Decide the Windows tunnel approach at the start. Task table below (PROPOSED 2026-10-28, not yet approved by Dylan; do not start 2.1 until the Windows tunnel decision in 2.0 is made).
+- **Phase 3: iPhone app. DEFERRED INDEFINITELY (Dylan, 2026-10-28). Do not plan or start it.** Native iOS app (Network Extension, WireGuardKit), scan-once enrollment, silent refresh. Needs a Mac with Xcode and an Apple Developer account.
 - **Phase 4: move to a new server.** The wizard in UX flow 7, the state machine in BUSINESS-RULES, a rehearsal in the lab with two servers, plus control plane backup and restore.
 - **Phase 5: reach.** Windows server, people invites (members add their own devices), email/push notifications, DNS provider integrations, public docs and case study.
+
+## Phase 2 task table (proposed)
+
+Goal: a computer joins with one click, keeps its own private key, refreshes it silently, and reports its own health. Linux and Windows agents. Same rules as Phase 1: test first, `verify.ps1` at the end, commit per task.
+
+| ID | Task | Test file |
+|---|---|---|
+| 2.0 | DONE 2026-10-28: Windows tunnel = drive official WireGuard for Windows; installers on GitHub Releases. See `docs/WINDOWS-TUNNEL.md` | none (decision record) |
+| 2.1 | Agent enrollment API: one-time link, device generates its own keypair and sends only the public key; agent pulls signed desired state; extend the no-private-keys scan to agent devices | `internal/api/agent_test.go`, `internal/api/noprivatekeys_test.go` |
+| 2.2 | Agent core (`wardline agent`): key kept in OS-protected storage, apply via `wg.Backend` idempotently, report health | `internal/agent/agent_test.go` |
+| 2.3 | Silent security refresh: agent rotates its key, control swaps keys without a gap, old key retired (BUSINESS-RULES key lifecycle) | `internal/agent/refresh_test.go`, `internal/api/refresh_test.go` |
+| 2.4 | Server-address re-lookup: agents follow a changed name or address (groundwork for Phase 4) | `internal/agent/resolve_test.go` |
+| 2.5 | Device-side health in the API and on Home/details (which side reports what; plain-language states) | `internal/api/health_test.go`, `web/tests/home.spec.ts` |
+| 2.6 | Linux agent: systemd unit, one-line install, lab devices switch to agents | `e2e/agent_lab_test.go` via `scripts/e2e.ps1` |
+| 2.7 | Windows agent: service, installer, cross-compile check (needs a real Windows machine for the manual check) | `scripts/crosscompile.ps1`, manual M-check |
+| 2.8 | UI: Add a device for Windows and Linux becomes the one-click installer; the 180-day card goes away for agent devices (UX flows 2 and 6) | `web/tests/add-device.spec.ts` |
+| 2.9 | Release build and where installers are published | `scripts/release.ps1` |
+
+Phase 2 is done when the agent items in `specs/ACCEPTANCE.md` pass (to be added with the table) and the Windows manual check is recorded. Then stop and wait for Dylan.

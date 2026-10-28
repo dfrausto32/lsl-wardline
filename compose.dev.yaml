@@ -1,0 +1,33 @@
+name: wardline
+
+# All named volumes get the "wardline_" prefix from the project name above.
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: wardline-dev:latest
+    working_dir: /src
+    volumes:
+      - .:/src
+      - gomod:/go/pkg/mod
+      - gobuild:/root/.cache/go-build
+      - pnpmstore:/root/.local/share/pnpm
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: ["sh"]
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.49.1-jammy
+    profiles: ["ui"]
+    working_dir: /src/web
+    volumes:
+      - .:/src
+    ipc: host
+
+volumes:
+  gomod:
+  gobuild:
+  pnpmstore:

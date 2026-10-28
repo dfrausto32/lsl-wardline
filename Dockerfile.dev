@@ -1,0 +1,25 @@
+# Development image: Go toolchain, WireGuard tools, linter, Node + pnpm.
+FROM golang:1.24-bookworm
+
+ARG NODE_VERSION=22.11.0
+ARG GOLANGCI_LINT_VERSION=v1.64.8
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      iproute2 wireguard-tools iputils-ping iptables curl ca-certificates xz-utils git \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN set -eu; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in amd64) node_arch=x64 ;; arm64) node_arch=arm64 ;; *) echo "unsupported arch $arch"; exit 1 ;; esac; \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" \
+      | tar -xJ -C /usr/local --strip-components=1; \
+    npm install -g pnpm@9
+
+RUN curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+      | sh -s -- -b /usr/local/bin ${GOLANGCI_LINT_VERSION}
+
+ENV CGO_ENABLED=0 \
+    GOFLAGS=-buildvcs=false
+
+WORKDIR /src

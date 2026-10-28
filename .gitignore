@@ -22,3 +22,4 @@ test-results/
 # Built web app is embedded into the binary; only the placeholder is tracked
 internal/webui/dist/*
 !internal/webui/dist/.gitkeep
+.pnpm-store/

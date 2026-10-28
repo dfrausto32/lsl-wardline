@@ -19,9 +19,7 @@ if (Test-Path "web/package.json") {
         docker compose -f compose.dev.yaml run --rm dev sh -c "cd web && pnpm install --frozen-lockfile && pnpm run typecheck && pnpm run test:unit"
     }
     Step "web: build" { docker compose -f compose.dev.yaml run --rm dev sh -c "cd web && pnpm run build" }
-    Step "web: playwright" {
-        docker compose -f compose.dev.yaml --profile ui run --rm playwright sh -c "npx playwright test"
-    }
+    Step "web: playwright against the lab" { powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "ui-test.ps1") }
 }
 Write-Host "verify: all steps passed"
 exit 0

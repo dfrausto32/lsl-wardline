@@ -5,7 +5,7 @@ RUN npm install -g pnpm@9
 COPY web/ ./
 RUN if [ -f package.json ]; then pnpm install --frozen-lockfile && pnpm run build; else mkdir -p /src/internal/webui/dist; fi
 
-FROM golang:1.24-bookworm AS build
+FROM golang:1.26-bookworm AS build
 ENV CGO_ENABLED=0 GOFLAGS=-buildvcs=false
 WORKDIR /build
 COPY . .

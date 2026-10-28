@@ -132,6 +132,9 @@ func TestAuthenticatorAppFlow(t *testing.T) {
 		t.Fatalf("a code should be requested: %v", step)
 	}
 	h.mustCall("GET", "/api/home", nil, nil, 401)
+	// The code used to turn two-step on is spent; the next one works.
+	h.mustCall("POST", "/api/session", map[string]string{"email": "maria@example.com", "password": goodPassword, "code": auth.TOTPCode(begin.Secret, h.now())}, nil, 401)
+	h.advance(30 * time.Second)
 	h.mustCall("POST", "/api/session", map[string]string{"email": "maria@example.com", "password": goodPassword, "code": auth.TOTPCode(begin.Secret, h.now())}, nil, 200)
 	h.mustCall("GET", "/api/home", nil, nil, 200)
 }

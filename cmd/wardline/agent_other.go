@@ -23,3 +23,6 @@ func platformRoot(cmd *cobra.Command) error { return cmd.Help() }
 
 // prepareConsole only matters on Windows, where the program has no console of its own.
 func prepareConsole() {}
+
+// platformRootCommands adds the tray icon and window commands, which only exist on Windows.
+func platformRootCommands(*cobra.Command) {}

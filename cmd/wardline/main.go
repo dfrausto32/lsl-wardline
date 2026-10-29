@@ -38,6 +38,7 @@ func newRoot() *cobra.Command {
 		Short: "Print the version",
 		Run:   func(cmd *cobra.Command, _ []string) { fmt.Fprintln(cmd.OutOrStdout(), version) },
 	})
+	platformRootCommands(root)
 	return root
 }
 

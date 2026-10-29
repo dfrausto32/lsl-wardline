@@ -60,7 +60,7 @@
 
   <section id="result" hidden>
     <div class="box" id="result-box" role="status"></div>
-    <button class="go" id="next" hidden>Continue</button><button class="quiet" id="again" hidden>Back</button><button class="quiet" id="close">Close</button>
+    <button class="go" id="next" hidden>Open Wardline</button><button class="quiet" id="again" hidden>Back</button><button class="quiet" id="close">Close</button>
   </section>
 </main>
 <script>
@@ -79,7 +79,7 @@
     $("result-box").className = "box" + (out.ok ? "" : " error");
     $("next").hidden = !(out.ok && out.open);
     $("again").hidden = out.ok;
-    $("next").onclick = function () { location.href = out.open; };
+    $("next").onclick = function () { call("/api/open"); };
     show("result");
   }
   function work(text, path, body, doneText) {
@@ -88,7 +88,7 @@
     call(path, body).then(function (out) { done(out, doneText); });
   }
   $("pick-server").onclick = function () {
-    work("Setting up Wardline on this computer. This takes a moment…", "/api/server", {}, "Next you will create your network. The Wardline setup opens in this window.");
+    work("Setting up Wardline on this computer. This takes a moment…", "/api/server", {}, "Wardline opened in your web browser, where you create your network. If it did not open, press Open Wardline. A Wardline icon was also added to your desktop.");
   };
   $("pick-computer").onclick = function () { show("computer"); $("command").focus(); };
   $("pick-remove").onclick = function () { show("remove"); };

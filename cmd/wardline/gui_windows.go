@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/jchv/go-webview2"
@@ -79,6 +80,7 @@ func runInstallerWindow(ctx context.Context) error {
 	if _, err := rand.Read(raw); err != nil {
 		return err
 	}
+	makeSharp()
 	key := hex.EncodeToString(raw)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -99,7 +101,7 @@ func runInstallerWindow(ctx context.Context) error {
 			close(closed)
 		}
 	}
-	h := installerHandler(key, "http://localhost:8080", realInstallActions(), quit)
+	h := installerHandler(key, "http://localhost:8080", realInstallActions(), quit, openInBrowser)
 	go http.Serve(ln, h)
 	url := fmt.Sprintf("http://127.0.0.1:%d/?k=%s", ln.Addr().(*net.TCPAddr).Port, key)
 
@@ -150,6 +152,7 @@ func realInstallActions() installActions {
 					return err
 				}
 			}
+			removeDesktopShortcut()
 			if err := os.RemoveAll(defaultAgentDir()); err != nil {
 				return err
 			}
@@ -157,4 +160,15 @@ func realInstallActions() installActions {
 			return nil
 		},
 	}
+}
+
+// makeSharp tells Windows this program draws its own pixels at any screen scaling. Without it, Windows
+// enlarges the window as a picture and everything looks blurry on a scaled or high-resolution screen.
+func makeSharp() {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	// -4 is "per-monitor aware v2" (Windows 10 1703 and later); fall back to the older call.
+	if ok, _, _ := user32.NewProc("SetProcessDpiAwarenessContext").Call(^uintptr(3)); ok != 0 {
+		return
+	}
+	user32.NewProc("SetProcessDPIAware").Call()
 }

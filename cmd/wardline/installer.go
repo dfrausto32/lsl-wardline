@@ -16,7 +16,7 @@ var installerPage []byte
 // installerHandler is the small web page behind the Windows installer window. It only ever listens on
 // this computer, serves the page only to someone holding the key, and runs the same install steps the
 // commands run. webURL is where the Wardline web app opens once the server is installed.
-func installerHandler(key, webURL string, a installActions, quit func()) http.Handler {
+func installerHandler(key, webURL string, a installActions, quit func(), openBrowser func(url string)) http.Handler {
 	mux := http.NewServeMux()
 	reply := func(w http.ResponseWriter, ok bool, message, open string) {
 		w.Header().Set("Content-Type", "application/json")
@@ -32,7 +32,17 @@ func installerHandler(key, webURL string, a installActions, quit func()) http.Ha
 		reply(w, true, out.String(), open)
 	}
 	mux.HandleFunc("/api/server", func(w http.ResponseWriter, r *http.Request) {
-		run(w, r, webURL, func(out *bytes.Buffer) error { _, err := a.installServer(r.Context(), out); return err })
+		run(w, r, webURL, func(out *bytes.Buffer) error {
+			if _, err := a.installServer(r.Context(), out); err != nil {
+				return err
+			}
+			openBrowser(webURL) // the web app opens in the person's own browser
+			return nil
+		})
+	})
+	mux.HandleFunc("/api/open", func(w http.ResponseWriter, _ *http.Request) {
+		openBrowser(webURL)
+		reply(w, true, "", "")
 	})
 	mux.HandleFunc("/api/computer", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {

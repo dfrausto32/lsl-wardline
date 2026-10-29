@@ -44,6 +44,9 @@ type Deps struct {
 	// OnServerCreated, when set, means this computer is also the server: it is given the one-time install
 	// code the moment it is made, so nobody has to copy a command. It must not block.
 	OnServerCreated func(code string)
+	// PublicIP finds the address the internet sees for this computer's network. It is only called when an
+	// admin asks for it, and is replaced in tests.
+	PublicIP func(ctx context.Context) (string, error)
 }
 
 type Server struct {
@@ -122,6 +125,7 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /api/totp/begin", s.admin(s.handleTOTPBegin))
 	m.HandleFunc("POST /api/totp/confirm", s.admin(s.handleTOTPConfirm))
 	m.HandleFunc("GET /api/network", s.admin(s.handleNetwork))
+	m.HandleFunc("GET /api/network/public-address", s.admin(s.handlePublicAddress))
 	m.HandleFunc("PUT /api/network/server-address", s.admin(s.handleServerAddress))
 	m.HandleFunc("GET /api/servers", s.admin(s.handleServers))
 	m.HandleFunc("POST /api/servers", s.admin(s.handleServerCreate))

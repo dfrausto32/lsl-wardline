@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { NewServer, api } from "../api";
 import { messageOf, useLoad } from "../hooks";
-import { primary } from "../strings";
+import { fmt, primary } from "../strings";
 import { Button, CopyBox, Field, LiveStatus } from "../components/ui";
 
 const looksLikeIp = (v: string) => /^[0-9.]+$/.test(v.trim()) || (v.includes(":") && /^[0-9a-fA-F:]+$/.test(v.trim()));
@@ -13,15 +13,32 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [suggested, setSuggested] = useState(false);
+  const [lan, setLan] = useState("");
+  const [finding, setFinding] = useState(false);
+  const [foundPublic, setFoundPublic] = useState(false);
   useEffect(() => {
     if (initial) return;
     api.network().then((n) => {
       if (n.suggested_address) {
         setValue((v) => v || n.suggested_address!);
+        setLan(n.suggested_address);
         setSuggested(true);
       }
     }).catch(() => {}); // a suggestion is only a convenience
   }, [initial]);
+  async function findPublic() {
+    setFinding(true);
+    setError(null);
+    try {
+      const r = await api.publicAddress();
+      setValue(r.address);
+      setFoundPublic(true);
+    } catch (err) {
+      setError(messageOf(err));
+    } finally {
+      setFinding(false);
+    }
+  }
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -41,6 +58,8 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
       <Field label={s.addressLabel} placeholder={s.addressPlaceholder} autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={value} onChange={(e) => setValue(e.target.value)} help={s.addressHelp} error={error} />
       {ip ? <p className="note" role="note">{s.addressIpNote}</p> : <p className="help">{s.addressRecommend}</p>}
       {suggested && <p className="help">{s.addressSuggested}</p>}
+      <div><Button type="button" variant="secondary" busy={finding} onClick={findPublic}>{finding ? s.findingPublic : s.findPublic}</Button></div>
+      {foundPublic && <p className="note" role="note">{fmt(s.publicFound, { lan: lan ? ` ()` : "" })} {s.publicChanges}</p>}
       <Button type="submit" busy={busy}>{primary.common.continue}</Button>
     </form>
   );

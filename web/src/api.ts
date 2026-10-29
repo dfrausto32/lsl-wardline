@@ -145,6 +145,7 @@ export const api = {
   totpConfirm: (code: string) => request<object>("POST", "/api/totp/confirm", { code }),
   setServerAddress: (address: string) =>
     request<{ server_address: string; server_address_kind: "name" | "ip" }>("PUT", "/api/network/server-address", { address }),
+  publicAddress: () => request<{ address: string }>("GET", "/api/network/public-address"),
   network: () => request<{ name: string; server_address: string; server_address_kind: "name" | "ip"; suggested_address?: string }>("GET", "/api/network"),
   servers: () => request<ServerSummary[]>("GET", "/api/servers"),
   createServer: (name?: string) => request<NewServer>("POST", "/api/servers", { name }),

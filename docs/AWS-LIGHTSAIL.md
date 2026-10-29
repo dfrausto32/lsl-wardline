@@ -29,6 +29,9 @@ Region: `us-east-2` (Ohio).
 7. **In your browser:** open `https://network.laneysoftwarelogistics.com`, create your sign-in, name the network, and use that same name as the server address. The server registers itself.
 8. **Your own computers:** on Windows, double-click `wardline.exe` and choose **Add this computer to my network** with the command from **Add a device**. Turn on **Let devices reach each other** on the server page so your machines can reach one another.
 
+## The start-up script
+`deploy/cloud-init-allinone.sh` is the script that does step 6 by itself when the server is first created (pass it as the server's "user data"). Edit `NAME` in it first. Its progress is kept in `/var/log/wardline-setup.log` on the server.
+
 ## Taking it away again
 `aws lightsail delete-instance`, then release the static address. Stopping the server alone still charges for it.
 

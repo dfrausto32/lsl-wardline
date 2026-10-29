@@ -160,6 +160,13 @@ func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
 	} else {
 		existing = nil
 	}
+	// If anything below fails, the service that was stopped for the update comes back, so a failed update never leaves a computer off the network.
+	finished := false
+	defer func() {
+		if !finished && existing != nil {
+			existing.Start()
+		}
+	}()
 	for _, name := range []string{agentServiceName, controlServiceName, gatewayServiceName} {
 		if name == sp.name {
 			continue
@@ -205,6 +212,9 @@ func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
 	if existing != nil {
 		s = existing
 		cfg.BinaryPathName = windows.ComposeCommandLine(append([]string{exe}, sp.args...))
+		// Changing an existing service: "no change" for the two settings that cannot be left at zero, which Windows rejects as "The parameter is incorrect".
+		cfg.ServiceType = windows.SERVICE_NO_CHANGE
+		cfg.ErrorControl = windows.SERVICE_NO_CHANGE
 		if err := s.UpdateConfig(cfg); err != nil {
 			return err
 		}
@@ -220,6 +230,7 @@ func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
 	if err := s.Start(); err != nil {
 		return fmt.Errorf("could not start the %s service: %w", sp.display, err)
 	}
+	finished = true
 	say(sp.done())
 	if sp.after != nil {
 		sp.after(out)

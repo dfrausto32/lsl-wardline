@@ -14,10 +14,11 @@ import (
 const testKey = "k-123"
 
 type installerRig struct {
-	calls []string
-	err   error
-	quit  bool
-	srv   *httptest.Server
+	calls  []string
+	err    error
+	quit   bool
+	opened []string
+	srv    *httptest.Server
 }
 
 func newInstallerRig(t *testing.T) *installerRig {
@@ -35,7 +36,7 @@ func newInstallerRig(t *testing.T) *installerRig {
 		},
 		remove: func(context.Context, io.Writer) error { r.calls = append(r.calls, "remove"); return r.err },
 	}
-	h := installerHandler(testKey, "http://localhost:8080", a, func() { r.quit = true })
+	h := installerHandler(testKey, "http://localhost:8080", a, func() { r.quit = true }, func(url string) { r.opened = append(r.opened, url) })
 	r.srv = httptest.NewServer(h)
 	t.Cleanup(r.srv.Close)
 	return r
@@ -152,5 +153,36 @@ func TestRemoveAndQuit(t *testing.T) {
 	r.post(t, "/api/quit", testKey, "{}")
 	if !r.quit {
 		t.Fatal("quit was not called")
+	}
+}
+
+// ---- opening the web app in the person's own browser, and the desktop shortcut ----
+
+func TestAfterTheServerIsInstalledTheWebAppOpensInTheBrowser(t *testing.T) {
+	r := newInstallerRig(t)
+	if _, out := r.post(t, "/api/server", testKey, "{}"); out["ok"] != true {
+		t.Fatalf("%v", out)
+	}
+	if len(r.opened) != 1 || r.opened[0] != "http://localhost:8080" {
+		t.Fatalf("opened %v", r.opened)
+	}
+}
+
+func TestTheBrowserIsNotOpenedWhenTheInstallFailed(t *testing.T) {
+	r := newInstallerRig(t)
+	r.err = errors.New("no")
+	r.post(t, "/api/server", testKey, "{}")
+	if len(r.opened) != 0 {
+		t.Fatalf("opened %v", r.opened)
+	}
+}
+
+func TestTheWebAppCanBeOpenedAgain(t *testing.T) {
+	r := newInstallerRig(t)
+	if code, out := r.post(t, "/api/open", testKey, "{}"); code != 200 || out["ok"] != true || len(r.opened) != 1 {
+		t.Fatalf("%d %v %v", code, out, r.opened)
+	}
+	if code, _ := r.post(t, "/api/open", "", "{}"); code != 403 {
+		t.Fatalf("the key is needed: %d", code)
 	}
 }

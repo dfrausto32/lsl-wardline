@@ -44,6 +44,11 @@ func installControlService(ctx context.Context, out io.Writer, o *controlOpts) (
 			return fmt.Sprintf("The Wardline web app is running.\nOn this computer, open http://localhost%s to set up your network.\nOther computers on your network use %s", o.listen, url)
 		},
 	})
+	if err == nil {
+		if serr := writeDesktopShortcut("http://localhost" + o.listen); serr == nil {
+			fmt.Fprintln(out, "A Wardline icon was added to your desktop.")
+		}
+	}
 	return url, err
 }
 
@@ -93,6 +98,7 @@ func platformControlCommands(c *cobra.Command, o *controlOpts) {
 			if err := uninstallWinService(controlServiceName, webRuleName, serverRuleName); err != nil {
 				return err
 			}
+			removeDesktopShortcut()
 			fmt.Fprintf(cmd.OutOrStdout(), "The Wardline web app was stopped and removed. Your data is still in %s.\n", o.data)
 			return nil
 		},

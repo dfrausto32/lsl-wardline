@@ -221,7 +221,7 @@ func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request, _ string)
 		return
 	}
 	s.json(w, http.StatusOK, map[string]any{"id": n.ID, "name": n.Name, "server_address": n.ServerAddress,
-		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "advanced": map[string]string{"address_range": n.Range}})
+		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "local_server": s.d.OnServerCreated != nil, "advanced": map[string]string{"address_range": n.Range}})
 }
 
 var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$`)

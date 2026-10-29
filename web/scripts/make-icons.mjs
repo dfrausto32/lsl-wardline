@@ -45,15 +45,16 @@ const svg = readFileSync("public/favicon.svg");
 writeFileSync("public/favicon-32.png", await sharp(svg, { density: 512 }).resize(32, 32).png().toBuffer());
 writeFileSync("public/favicon-48.png", await sharp(svg, { density: 512 }).resize(48, 48).png().toBuffer());
 
-// The Windows program icon (cmd/wardline/wardline.ico): the full logo when large, the shield when tiny.
+// The Windows program icon (cmd/wardline/wardline.ico): the full logo with rounded, see-through corners when large, the shield when tiny.
+const rounded = (n) => sharp(cut).resize(n, n).png({ compressionLevel: 9 }).toBuffer();
 // Turn it into the resource the linker uses with: go run github.com/akavel/rsrc@v0.10.2 -ico cmd/wardline/wardline.ico -arch amd64 -o cmd/wardline/rsrc_windows_amd64.syso
 const sizes = [
   [16, await sharp(svg, { density: 512 }).resize(16, 16).png().toBuffer()],
   [32, await sharp(svg, { density: 512 }).resize(32, 32).png().toBuffer()],
   [48, await sharp(svg, { density: 512 }).resize(48, 48).png().toBuffer()],
-  [64, await full(64)],
-  [128, await full(128)],
-  [256, await full(256)],
+  [64, await rounded(64)],
+  [128, await rounded(128)],
+  [256, await rounded(256)],
 ];
 const head = Buffer.alloc(6);
 head.writeUInt16LE(1, 2); // type: icon

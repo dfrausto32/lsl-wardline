@@ -18,11 +18,21 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
   const [foundPublic, setFoundPublic] = useState(false);
   useEffect(() => {
     if (initial) return;
-    api.network().then((n) => {
+    api.network().then(async (n) => {
       if (n.suggested_address) {
         setValue((v) => v || n.suggested_address!);
         setLan(n.suggested_address);
         setSuggested(true);
+      }
+      if (n.local_server) { // this computer is the server: find the address the internet sees, so nobody has to
+        setFinding(true);
+        try {
+          const r = await api.publicAddress();
+          setValue(r.address);
+          setFoundPublic(true);
+        } catch { /* the local address stays filled in */ } finally {
+          setFinding(false);
+        }
       }
     }).catch(() => {}); // a suggestion is only a convenience
   }, [initial]);
@@ -57,9 +67,10 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
     <form onSubmit={submit} className="stack">
       <Field label={s.addressLabel} placeholder={s.addressPlaceholder} autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={value} onChange={(e) => setValue(e.target.value)} help={s.addressHelp} error={error} />
       {ip ? <p className="note" role="note">{s.addressIpNote}</p> : <p className="help">{s.addressRecommend}</p>}
-      {suggested && <p className="help">{s.addressSuggested}</p>}
+      {suggested && !foundPublic && <p className="help">{s.addressSuggested}</p>}
       <div><Button type="button" variant="secondary" busy={finding} onClick={findPublic}>{finding ? s.findingPublic : s.findPublic}</Button></div>
       {foundPublic && <p className="note" role="note">{fmt(s.publicFound, { lan: lan ? ` ()` : "" })} {s.publicChanges}</p>}
+      {foundPublic && lan && value !== lan && <div><Button type="button" variant="quiet" onClick={() => setValue(lan)}>{s.useLan}</Button></div>}
       <Button type="submit" busy={busy}>{primary.common.continue}</Button>
     </form>
   );

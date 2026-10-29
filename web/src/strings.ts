@@ -64,6 +64,7 @@ export const primary = {
     addressRecommend: "A name is the better choice.",
     findPublic: "Find my public address",
     findingPublic: "Looking…",
+    useLan: "Use this computer's own address instead (only devices on this network can connect)",
     publicFound: "This is the address the internet sees for your network. For devices outside your home or office to connect, your router must send port 51820 (UDP) to this computer{lan}.",
     publicChanges: "This address can change when your internet provider decides. A name that follows it, like network.yourcompany.com, is more reliable.",
     addressSuggested: "We filled in this computer's address. It works for devices on the same network. For devices elsewhere, use your public name or address.",

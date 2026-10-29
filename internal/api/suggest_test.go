@@ -20,3 +20,18 @@ func TestTheServerAddressIsSuggestedFromTheAddressTheWebAppIsReachedAt(t *testin
 		}
 	}
 }
+
+func TestTheAddressScreenIsToldWhenThisComputerIsTheServer(t *testing.T) {
+	h := newHarness(t)
+	h.setup()
+	var out map[string]any
+	h.mustCall("GET", "/api/network", nil, &out, 200)
+	if out["local_server"] != false {
+		t.Fatalf("no local server is configured: %v", out["local_server"])
+	}
+	h.api.d.OnServerCreated = func(string) {}
+	h.mustCall("GET", "/api/network", nil, &out, 200)
+	if out["local_server"] != true {
+		t.Fatalf("the screen should know this computer is the server: %v", out["local_server"])
+	}
+}

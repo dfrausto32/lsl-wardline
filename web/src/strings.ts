@@ -67,6 +67,8 @@ export const primary = {
     commandHelp: "Run this on the computer that will be your server. It works once and expires in 24 hours.",
     linuxTab: "Linux service",
     linuxHelp: "On the server, open the folder that holds the Wardline program and its install files, then run this.",
+    windowsTab: "Windows service",
+    windowsHelp: "On the server, open PowerShell as administrator in the folder that holds wardline.exe, then run this.",
     commandTab: "Container command",
     composeTab: "Compose file",
     commandPort: "Make sure the computer allows connections on port 51820.",

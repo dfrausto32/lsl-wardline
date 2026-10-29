@@ -56,7 +56,8 @@ volumes:
   wardline-server:
 `, defaultListenPort, defaultListenPort, url, token)
 	linux := fmt.Sprintf("sudo sh install-linux.sh gateway %s %s", url, token)
-	return map[string]string{"linux": linux, "docker": docker, "compose": compose}
+	windows := fmt.Sprintf(`.\wardline.exe gateway install --control-url %s --token %s`, url, token)
+	return map[string]string{"linux": linux, "windows": windows, "docker": docker, "compose": compose}
 }
 
 func (s *Server) handleServerCreate(w http.ResponseWriter, r *http.Request, adminID string) {

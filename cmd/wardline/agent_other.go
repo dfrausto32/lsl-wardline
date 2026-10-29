@@ -11,7 +11,9 @@ import (
 )
 
 // runAsService is only meaningful on Windows, where the service manager starts the program.
-func runAsService(func(ctx context.Context) error) (bool, error) { return false, nil }
+func runAsService(string, func(ctx context.Context) error) (bool, error) { return false, nil }
 
-// platformAgentCommands adds commands that exist on this system only. On Linux the install script does this.
+// The platform commands add install steps that exist on this system only. On Linux the install script does this.
 func platformAgentCommands(*cobra.Command, *agentOpts, func() (*agent.Agent, error)) {}
+func platformControlCommands(*cobra.Command, *controlOpts)                           {}
+func platformGatewayCommands(*cobra.Command, *gatewayOpts)                           {}

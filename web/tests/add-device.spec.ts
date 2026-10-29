@@ -41,19 +41,18 @@ for (const k of KINDS) {
     await expect(page.getByText(fmt(a.waiting, { name: k.deviceName }))).toBeVisible();
 
     if (k.agent) {
-      // One command; the computer makes its own key. Linux needs no extra app; Windows needs WireGuard first.
+      // One command; the computer makes its own key. Neither kind needs another app first.
       await expect(page.getByRole("heading", { name: a.agentTitle })).toBeVisible();
       const command = await page.locator("pre").first().innerText();
       expect(command).toContain(k.platform === "windows" ? "wardline.exe agent install" : "install-linux.sh agent");
       await expect(page.getByText(a.agentOnce)).toBeVisible();
       await expect(page.getByRole("button", { name: a.downloadButton })).toHaveCount(0);
       await expect(page.getByRole("img", { name: a.scanAlt })).toHaveCount(0);
-      if (k.platform === "windows") {
-        await expect(page.getByRole("heading", { name: a.installTitle })).toBeVisible();
-        await expect(page.getByRole("link", { name: a.installButton })).toHaveAttribute("href", /wireguard/);
-      } else {
-        await expect(page.getByRole("heading", { name: a.installTitle })).toHaveCount(0);
-      }
+      // One install: the program carries its own connection software, so there is no second app to get.
+      await expect(page.getByRole("heading", { name: a.installTitle })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: a.getTitle })).toBeVisible();
+      const get = page.getByRole("link", { name: k.platform === "windows" ? a.getWindowsButton : a.getLinuxButton });
+      await expect(get).toHaveAttribute("href", k.platform === "windows" ? /\/releases\/latest\/download\/wardline\.exe$/ : /\/releases\/latest\/download\/wardline-linux-install\.tar\.gz$/);
       await review(page, `add-${k.platform}`);
       return;
     }

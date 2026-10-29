@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/spf13/cobra"
@@ -13,6 +12,7 @@ import (
 	"lsl-wardline/internal/gateway"
 	wlog "lsl-wardline/internal/log"
 	"lsl-wardline/internal/wg"
+	"lsl-wardline/internal/wintun"
 )
 
 func gatewayCmd() *cobra.Command {
@@ -63,13 +63,11 @@ func chooseBackend(want string) (wg.Backend, string, error) {
 		k, err := wg.NewKernel()
 		return k, "kernel", err
 	case "userspace":
-		return wg.NewUserspace(), "userspace", nil
-	case "wireguard-app":
-		return wg.NewWireGuardApp(filepath.Join(defaultAgentDir(), "tunnels")), "official WireGuard for Windows", nil
+		return userspace()
 	case "auto", "":
+		// Windows has no kernel WireGuard; the program carries its own (see docs/WINDOWS-TUNNEL.md).
 		if runtime.GOOS == "windows" {
-			// On Windows the tunnel is run by the official WireGuard program (see docs/WINDOWS-TUNNEL.md).
-			return wg.NewWireGuardApp(filepath.Join(defaultAgentDir(), "tunnels")), "official WireGuard for Windows", nil
+			return userspace()
 		}
 		if wg.KernelAvailable() {
 			if k, err := wg.NewKernel(); err == nil {
@@ -78,5 +76,14 @@ func chooseBackend(want string) (wg.Backend, string, error) {
 		}
 		return wg.NewUserspace(), "userspace", nil
 	}
-	return nil, "", fmt.Errorf("unknown backend %q (use auto, kernel, userspace or wireguard-app)", want)
+	return nil, "", fmt.Errorf("unknown backend %q (use auto, kernel or userspace)", want)
+}
+
+// userspace runs WireGuard inside this program. On Windows that needs the
+// bundled network driver library placed next to the program first.
+func userspace() (wg.Backend, string, error) {
+	if err := wintun.Prepare(); err != nil {
+		return nil, "", err
+	}
+	return wg.NewUserspace(), "userspace", nil
 }

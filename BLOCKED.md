@@ -21,7 +21,7 @@ Decided: systemd is the primary install on Linux (`deploy/`, `docs/INSTALL.md`);
 
 ### Phase 2: things only Dylan can do
 - **GitHub repository:** one is needed before installers can be published as GitHub Releases (`scripts/release.ps1` builds everything and prints the `gh release create` command). Account and name are Dylan's call.
-- **Windows installer and WireGuard:** `wardline.exe agent install` does NOT download WireGuard for Windows; it stops with a plain message and a link if it is missing. Reason: the SHA-256 for `wireguard-amd64-1.1.1.msi` in WireGuard's own `latest.sig` did not match the file I downloaded from the same server (f64b88de... listed, 7bfed60a... received), and I could not verify the signature here. Dylan to decide whether to bundle or fetch it later, after checking the licence and verifying the signature. See `docs/WINDOWS-TUNNEL.md`.
+- **Wintun licence:** `wardline.exe` now carries WireGuard's signed `wintun.dll` (0.14.1) so Windows needs one install (decided 2026-10-29). I read its licence (`internal/wintun/LICENSE.txt`): redistribution is allowed alongside software that uses it only through the published interface, unmodified. We embed it unchanged and a test pins its hash. Dylan to accept that reading (it is not legal advice). The release ships the licence file. See `docs/WINDOWS-TUNNEL.md`.
 - **A real Windows machine** for manual check M6 (agent install, connects, survives a reboot, removed device loses access). Also the first real Linux install with systemd.
 
 ### Phase 3 prerequisites (DEFERRED INDEFINITELY by Dylan, 2026-10-28; ignore)
@@ -32,7 +32,7 @@ A Mac with Xcode (or a cloud Mac build service) and an Apple Developer Program m
 - UI styling toolkit: plain CSS (decided).
 - Where the control plane will live in production: recommend a small separate host so a server move never takes the control plane with it. Same-host setups are allowed, with the limitation noted in BUSINESS-RULES.
 - Single-tenant for now. Assumed unless Dylan says otherwise.
-- Windows tunnel approach: drive the official WireGuard for Windows (decided 2026-10-28). Installers on GitHub Releases (decided).
+- Windows tunnel approach: built in, one `wardline.exe` with an embedded Wintun driver library (decided 2026-10-29, replacing "drive the official WireGuard for Windows"). Installers on GitHub Releases (decided).
 - Git branch stays `master` (decided).
 - "Send me a link" for phones (UX flow 2): left out of v1 (decided). If wanted later it needs a sealed, single-use, short-lived handoff, specified first.
 - Refresh security for phones (UX flow 6): the Phase 1 behaviour (gentle card, button opens "Add a device") is accepted. A replace-after-first-connection flow goes on a later task list.
@@ -42,7 +42,7 @@ A Mac with Xcode (or a cloud Mac build service) and an Apple Developer Program m
 - UX flow 2 says Phase 2 replaces the file with a "one-click installer". Built: one command per computer (Linux install script, Windows `agent install`). A graphical Windows installer (MSI/EXE with a button) is not built; it needs packaging tooling and the WireGuard bundling decision above.
 - Windows keys are protected by a folder only the system and administrators can read, not by Windows DPAPI. DPAPI would need more code and cannot be tested without a Windows machine. Linux keys are in a 0600 file owned by a dedicated service user.
 - Server-address re-lookup (2.4) is proven by unit tests with a fake resolver. The lab has no second server until Phase 4, so a real address change was not run end to end.
-- The Windows pieces (service, WireGuard-for-Windows driver, `agent install`, `agent uninstall`) compile for windows/amd64 and their command order is unit tested with the WireGuard programs stubbed, but nothing was run on Windows.
+- The Windows pieces (service, built-in tunnel with embedded Wintun, netsh address and MTU, `agent install`, `agent uninstall`) compile for windows/amd64; the netsh commands and the driver file handling are unit tested, but nothing was run on Windows. Loading `wintun.dll`, creating the adapter and the netsh retry are only proven by manual check M6.
 - Added: `iputils-ping` in the production image (lab agents use it), `golang.org/x/sys` as a direct dependency (already in the build), migrations 0005 and 0006, and `wardline agent refresh` (asks a running agent to refresh now).
 - One mistake of mine, fixed: an earlier edit to this file truncated it and was committed (5629cf7). This version was rebuilt from the previous good copy plus the Phase 2 entries.
 

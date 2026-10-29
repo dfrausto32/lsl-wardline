@@ -9,7 +9,6 @@ const PLATFORMS: Platform[] = ["ios", "android", "windows", "macos", "linux"];
 const isPhone = (p: Platform) => p === "ios" || p === "android";
 // Windows and Linux computers set themselves up with the Wardline agent; the rest use the WireGuard app.
 const usesAgent = (p: Platform) => p === "windows" || p === "linux";
-const WIREGUARD_FOR_WINDOWS = "https://www.wireguard.com/install/";
 // Always the newest published release of the program.
 const RELEASES = "https://github.com/dfrausto32/lsl-wardline/releases/latest/download";
 const RELEASE_WINDOWS = `${RELEASES}/wardline.exe`;
@@ -149,12 +148,6 @@ function ShowAgentSetup({ person, platform, navigate, onAnother }: { person: Per
     <div className="stack">
       <p className="progress">{fmt(a.stepOf, { n: 3, total: 3 })}</p>
       <h1>{name}</h1>
-      {platform === "windows" && (
-        <Card className="stack">
-          <h2>{a.installTitle}</h2>
-          <a className="btn btn-secondary" href={WIREGUARD_FOR_WINDOWS} target="_blank" rel="noreferrer noopener">{a.installButton}</a>
-        </Card>
-      )}
       <Card className="stack">
         <h2>{a.getTitle}</h2>
         <a className="btn btn-secondary" href={platform === "windows" ? RELEASE_WINDOWS : RELEASE_LINUX}>

@@ -21,11 +21,12 @@ apt-get update
 apt-get install -y nftables caddy curl ca-certificates
 
 # Download Wardline and check it against the published checksum before running anything.
+# (The checksum file of releases up to v0.1.7 has Windows line endings, so any carriage returns are removed first.)
 mkdir -p /opt/wardline-install
 cd /opt/wardline-install
 curl -fsSL -O "$BASE/wardline-linux-install.tar.gz"
 curl -fsSL -O "$BASE/SHA256SUMS.txt"
-tr -d '' < SHA256SUMS.txt | grep ' wardline-linux-install.tar.gz$' | sha256sum -c -
+tr -d '\r' < SHA256SUMS.txt | grep ' wardline-linux-install.tar.gz$' | sha256sum -c -
 tar -xzf wardline-linux-install.tar.gz
 
 # The web app and the server, as one service. The web app only listens inside the machine; Caddy fronts it.

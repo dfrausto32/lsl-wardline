@@ -81,6 +81,9 @@ type Config struct {
 	ResolveEvery      time.Duration // default 60s
 	RefreshCheckEvery time.Duration // default 5m
 	HandshakeWait     time.Duration // how long a new key gets to prove itself; default 30s
+
+	// StatusPath, when set, is a file the agent keeps up to date for the tray icon and desktop window.
+	StatusPath string
 }
 
 type Agent struct {
@@ -528,6 +531,15 @@ func (a *Agent) ReportNow(ctx context.Context) error {
 	if err := a.Start(ctx); err != nil {
 		return err
 	}
+	r, _ := a.measure(ctx)
+	a.mu.Lock()
+	auth := a.id.AuthToken
+	a.mu.Unlock()
+	return a.cfg.Control.Report(ctx, auth, r)
+}
+
+// measure reads how the tunnel is doing right now. It also returns the last instructions applied, if any.
+func (a *Agent) measure(ctx context.Context) (Report, *DesiredState) {
 	a.mu.Lock()
 	id, last, prob, appliedAt := a.id, a.last, a.prob, a.appliedAt
 	a.mu.Unlock()
@@ -554,7 +566,7 @@ func (a *Agent) ReportNow(ctx context.Context) error {
 		}
 	}
 	r.Problem = prob
-	return a.cfg.Control.Report(ctx, id.AuthToken, r)
+	return r, last
 }
 
 // ---- running ----
@@ -604,6 +616,10 @@ func (a *Agent) Run(ctx context.Context) error {
 			a.cfg.Log.Warn("could not report to the control plane", "error", err.Error())
 		}
 	})
+	if a.cfg.StatusPath != "" {
+		a.WriteStatus(runCtx)
+		tick(5*time.Second, func() { a.WriteStatus(runCtx) })
+	}
 	tick(a.cfg.ResolveEvery, func() {
 		if _, err := a.ResolveNow(runCtx); err != nil && runCtx.Err() == nil {
 			a.cfg.Log.Warn("could not look up the server address", "error", err.Error())

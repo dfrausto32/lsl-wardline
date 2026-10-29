@@ -68,6 +68,7 @@ func agentCmd() *cobra.Command {
 	pf.StringVar(stateDir, "state-dir", envOr("WARDLINE_STATE_DIR", defaultAgentDir()), "folder where this computer keeps its keys")
 	pf.StringVar(iface, "interface", envOr("WARDLINE_INTERFACE", "wardline-agent"), "name of the network interface to create")
 	pf.StringVar(backend, "backend", envOr("WARDLINE_BACKEND", "auto"), "auto, kernel or userspace")
+	pf.StringVar(&o.statusFile, "status-file", envOr("WARDLINE_STATUS_FILE", defaultStatusFile()), "file the tray icon and desktop window read to show how this computer is doing (Windows)")
 	pf.StringVar(level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
 	c.Flags().DurationVar(&refreshCheck, "refresh-check", 0, "how often to check whether a security refresh is due (default 5m)")
 
@@ -105,7 +106,7 @@ func agentCmd() *cobra.Command {
 
 // agentOpts are the flags every agent command shares.
 type agentOpts struct {
-	controlURL, token, stateDir, iface, backend, level string
+	controlURL, token, stateDir, iface, backend, level, statusFile string
 }
 
 // buildAgent makes the device role from its flags.
@@ -122,5 +123,14 @@ func buildAgent(o *agentOpts, refreshCheck time.Duration) (*agent.Agent, error) 
 	return agent.New(agent.Config{
 		StateDir: o.stateDir, Iface: o.iface, ControlURL: o.controlURL, EnrollToken: o.token, Version: version,
 		Control: agent.NewHTTPControl(o.controlURL, &http.Client{}), Backend: b, Log: log, RefreshCheckEvery: refreshCheck,
+		StatusPath: o.statusFile,
 	}), nil
+}
+
+// defaultStatusFile is where the Windows tray icon and window look. Other systems have neither.
+func defaultStatusFile() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(programData(), "Wardline-status", "status.json")
+	}
+	return ""
 }

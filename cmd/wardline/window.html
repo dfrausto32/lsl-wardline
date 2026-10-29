@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wardline</title>
+<style>
+  :root { --bg:#f5f0e1; --card:#fffdf6; --text:#141414; --muted:#5b564b; --red:#e50f0f; --red-dark:#b30b0b; --line:#d8d0bb; --green:#1f8a3b; --amber:#c47f00; --grey:#7a7468; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141414; --card:#1f1d1a; --text:#f5f0e1; --muted:#b9b2a0; --line:#3a362f; --green:#4cc36b; --amber:#f0b429; --grey:#9a9486; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:560px; margin:0 auto; padding:22px 20px 28px; }
+  h1 { font-size:22px; margin:0; }
+  .top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  .dot { width:46px; height:46px; border-radius:50%; background:var(--grey); flex:none; }
+  .dot.connected { background:var(--green); } .dot.problem { background:var(--amber); } .dot.connecting { background:var(--amber); } .dot.off { background:var(--grey); }
+  .headline { font-size:18px; font-weight:700; }
+  .sub { color:var(--muted); font-size:13px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:2px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:16px; }
+  td { padding:9px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  td:first-child { color:var(--muted); width:42%; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; }
+  button { font:inherit; font-weight:600; min-height:42px; padding:8px 16px; border-radius:11px; cursor:pointer; border:2px solid var(--line); background:transparent; color:var(--text); }
+  button.go { background:var(--red); border-color:var(--red); color:#fff; }
+  button.go:hover { background:var(--red-dark); border-color:var(--red-dark); }
+  button.danger { border-color:var(--red); color:var(--red); }
+  button:disabled { opacity:.5; cursor:default; }
+  #note { margin-top:12px; color:var(--muted); min-height:1.4em; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><div class="dot" id="dot"></div><div><div class="headline" id="headline">Checking…</div><div class="sub" id="sub"></div></div></div>
+  <table>
+    <tr><td>This computer's address</td><td id="address">—</td></tr>
+    <tr><td>Server</td><td id="server">—</td></tr>
+    <tr><td>Last connected</td><td id="last">—</td></tr>
+    <tr><td>Sent</td><td id="sent">—</td></tr>
+    <tr><td>Received</td><td id="received">—</td></tr>
+    <tr><td>Wardline version</td><td id="version">—</td></tr>
+  </table>
+  <div class="actions">
+    <button class="go" id="toggle">Disconnect</button>
+    <button id="refresh">Refresh security now</button>
+    <button id="web">Open the web app</button>
+    <button class="danger" id="remove">Remove this computer</button>
+    <button id="close">Close</button>
+  </div>
+  <div id="note" role="status"></div>
+</main>
+<script>
+(function () {
+  var key = new URLSearchParams(location.search).get("k") || "";
+  var $ = function (id) { return document.getElementById(id); };
+  var running = false;
+  function call(path, body) {
+    return fetch(path, { method: body ? "POST" : "GET", headers: { "X-Wardline-Key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, message: "Could not reach Wardline. Close this window and open it again." }; });
+  }
+  function show(s) {
+    if (!s || !s.state) { return; }
+    running = s.state !== "off";
+    $("dot").className = "dot " + s.state;
+    $("headline").textContent = s.headline;
+    $("sub").textContent = s.connected ? "This computer is on your private network." : "";
+    $("address").textContent = s.address || "—";
+    $("server").textContent = s.server || "—";
+    $("last").textContent = s.last_connected || "—";
+    $("sent").textContent = s.sent || "—";
+    $("received").textContent = s.received || "—";
+    $("version").textContent = s.version || "—";
+    $("toggle").textContent = running ? "Disconnect" : "Connect";
+    $("toggle").className = running ? "" : "go";
+    $("refresh").disabled = !running;
+  }
+  function poll() { call("/api/status").then(show); }
+  function act(name, text) {
+    $("note").textContent = text || "";
+    call("/api/action", { name: name }).then(function (out) {
+      if (out && out.ok === false) { $("note").textContent = out.message; }
+      setTimeout(poll, 1500);
+    });
+  }
+  $("toggle").onclick = function () { act(running ? "disconnect" : "connect", "Windows will ask for permission."); };
+  $("refresh").onclick = function () { act("refresh", "Windows will ask for permission. The refresh starts within a few minutes."); };
+  $("web").onclick = function () { act("web"); };
+  $("remove").onclick = function () {
+    if (confirm("Remove this computer from the network? It stops being connected and its security keys on this computer are deleted. You should also remove it in the Wardline web app.")) {
+      act("remove", "Windows will ask for permission.");
+    }
+  };
+  $("close").onclick = function () { act("close"); };
+  poll();
+  setInterval(poll, 3000);
+})();
+</script>
+</body>
+</html>

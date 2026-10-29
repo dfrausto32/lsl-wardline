@@ -18,6 +18,7 @@ import (
 	"lsl-wardline/internal/audit"
 	"lsl-wardline/internal/auth"
 	wlog "lsl-wardline/internal/log"
+	"lsl-wardline/internal/portmap"
 	"lsl-wardline/internal/store"
 	"lsl-wardline/internal/webui"
 )
@@ -96,6 +97,15 @@ func serveControl(ctx context.Context, o *controlOpts) error {
 		host, _ := os.Hostname()
 		local = &localServer{ctx: ctx, listen: listen, stateDir: o.serverDir, name: host, level: o.level}
 		deps.OnServerCreated = local.start
+		keeper := &routerKeeper{dir: o.serverDir, every: 6 * time.Hour, open: openRouterPort}
+		deps.OpenRouterPort = func(ctx context.Context) portmap.Result {
+			res := openRouterPort(ctx)
+			if res.Opened {
+				keeper.remember()
+			}
+			return res
+		}
+		go keeper.run(ctx)
 	}
 	srv := api.New(deps)
 	hs := &http.Server{Addr: listen, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}

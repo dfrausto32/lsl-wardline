@@ -16,6 +16,9 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
   const [lan, setLan] = useState("");
   const [finding, setFinding] = useState(false);
   const [foundPublic, setFoundPublic] = useState(false);
+  const [routerStep, setRouterStep] = useState(false);
+  const [routerBusy, setRouterBusy] = useState(false);
+  const [routerNote, setRouterNote] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
     if (initial) return;
     api.network().then(async (n) => {
@@ -24,6 +27,7 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
         setLan(n.suggested_address);
         setSuggested(true);
       }
+      setRouterStep(!!n.router_step);
       if (n.local_server) { // this computer is the server: find the address the internet sees, so nobody has to
         setFinding(true);
         try {
@@ -49,6 +53,18 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
       setFinding(false);
     }
   }
+  async function openRouter() {
+    setRouterBusy(true);
+    setRouterNote(null);
+    try {
+      const r = await api.routerForwarding();
+      setRouterNote({ ok: r.opened, text: r.message });
+    } catch (err) {
+      setRouterNote({ ok: false, text: messageOf(err) });
+    } finally {
+      setRouterBusy(false);
+    }
+  }
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -71,6 +87,23 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
       <div><Button type="button" variant="secondary" busy={finding} onClick={findPublic}>{finding ? s.findingPublic : s.findPublic}</Button></div>
       {foundPublic && <p className="note" role="note">{fmt(s.publicFound, { lan: lan ? ` ()` : "" })} {s.publicChanges}</p>}
       {foundPublic && lan && value !== lan && <div><Button type="button" variant="quiet" onClick={() => setValue(lan)}>{s.useLan}</Button></div>}
+      {routerStep && (
+        <div className="stack" aria-label={s.routerTitle}>
+          <h2>{s.routerTitle}</h2>
+          <p className="help">{s.routerHelp}</p>
+          <div><Button type="button" variant="secondary" busy={routerBusy} onClick={openRouter}>{routerBusy ? s.routerWorking : s.routerButton}</Button></div>
+          {routerNote && <p className={routerNote.ok ? "note" : "error"} role="status">{routerNote.text}</p>}
+          <details>
+            <summary>{s.routerManualTitle}</summary>
+            <ol>
+              <li>{s.routerManual1}</li>
+              <li>{s.routerManual2}</li>
+              <li>{fmt(s.routerManual3, { lan: lan || "this computer" })}</li>
+              <li>{s.routerManual4}</li>
+            </ol>
+          </details>
+        </div>
+      )}
       <Button type="submit" busy={busy}>{primary.common.continue}</Button>
     </form>
   );

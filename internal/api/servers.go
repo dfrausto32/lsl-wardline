@@ -282,7 +282,7 @@ func (s *Server) buildState(ctx context.Context, serverID string, version int64)
 	}
 	defer rows.Close()
 	st := gateway.DesiredState{Version: version, IssuedAt: s.now(), ServerID: serverID,
-		Address: netip.PrefixFrom(sip, prefix.Bits()).String(), ListenPort: port, Peers: []gateway.DesiredPeer{}}
+		Address: netip.PrefixFrom(sip, prefix.Bits()).String(), ListenPort: port, Peers: []gateway.DesiredPeer{}, DevicesReachEachOther: n.Reach}
 	for rows.Next() {
 		var p gateway.DesiredPeer
 		var ct, nonce []byte

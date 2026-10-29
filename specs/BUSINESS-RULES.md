@@ -6,7 +6,7 @@ These are the rules most likely to be got wrong. Each needs a test.
 - Users never see or type an address range. Wardline picks a private range at network creation that does not collide with common home and office ranges, and allocates device addresses automatically.
 - The first usable address is the server's. Device addresses are lowest-free first.
 - A removed device's address is quarantined for 7 days before reuse, so a stale config on an old phone cannot collide with a new device.
-- On the server, a device's allowed addresses are its single tunnel address only. Devices cannot reach each other in v1 (hub-and-spoke, devices isolated by default).
+- On the server, a device's allowed addresses are its single tunnel address only. Devices cannot reach each other by default (hub-and-spoke, devices isolated by default). The network setting `devices_reach_each_other` (off by default, changed by an admin, written to Activity) makes the server relay traffic from one device to another through itself, and nothing else: relaying to or from the rest of the server's network stays blocked. Isolation is enforced by firewall rules on the server, never left to the host's own forwarding switch. Still hub-and-spoke: no mesh, no direct device-to-device connections.
 
 ## The server address
 - If the user gives a **name**, all device configs use that name. Moving servers can then be done by pointing the name at the new server.

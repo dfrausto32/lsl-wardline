@@ -184,6 +184,8 @@ input[aria-invalid="true"] { border-color: var(--ink); }
 /* Code blocks */
 .copybox { display: flex; flex-direction: column; gap: 8px; }
 .copybox pre { margin: 0; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; }
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
+.check input { width: 22px; height: 22px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
 .tabs button { font: inherit; font-weight: 700; min-height: 44px; padding: 6px 14px; border-radius: 10px; border: 2px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--quiet-bg); color: var(--text); border-color: var(--primary); }

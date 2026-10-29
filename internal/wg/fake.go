@@ -13,6 +13,7 @@ import (
 type Fake struct {
 	mu     sync.Mutex
 	ifaces map[string]*fakeIface
+	fwd    map[string]bool
 	Now    func() time.Time
 }
 
@@ -114,4 +115,23 @@ func (f *Fake) Interface(name string) (InterfaceConfig, bool) {
 		return InterfaceConfig{}, false
 	}
 	return i.cfg, true
+}
+
+// SetForwarding records whether the pretend server relays between devices.
+func (f *Fake) SetForwarding(_ context.Context, name string, enabled bool) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.fwd == nil {
+		f.fwd = map[string]bool{}
+	}
+	f.fwd[name] = enabled
+	return nil
+}
+
+// Forwarding reports what SetForwarding last set, and whether it was ever set.
+func (f *Fake) Forwarding(name string) (on, set bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	on, set = f.fwd[name]
+	return on, set
 }

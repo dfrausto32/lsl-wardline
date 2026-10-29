@@ -22,6 +22,7 @@ import (
 
 type network struct {
 	ID, Name, Range, ServerAddress, Kind string
+	Reach                                bool // devices may reach each other through the server
 }
 
 type queryer interface {
@@ -30,8 +31,8 @@ type queryer interface {
 
 func (s *Server) network(ctx context.Context, q queryer) (network, error) {
 	var n network
-	err := q.QueryRowContext(ctx, `SELECT id, name, address_range, server_address, server_address_kind FROM networks ORDER BY rowid LIMIT 1`).
-		Scan(&n.ID, &n.Name, &n.Range, &n.ServerAddress, &n.Kind)
+	err := q.QueryRowContext(ctx, `SELECT id, name, address_range, server_address, server_address_kind, devices_reach_each_other FROM networks ORDER BY rowid LIMIT 1`).
+		Scan(&n.ID, &n.Name, &n.Range, &n.ServerAddress, &n.Kind, &n.Reach)
 	return n, err
 }
 
@@ -221,7 +222,7 @@ func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request, _ string)
 		return
 	}
 	s.json(w, http.StatusOK, map[string]any{"id": n.ID, "name": n.Name, "server_address": n.ServerAddress,
-		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "local_server": s.d.OnServerCreated != nil, "router_step": s.d.OpenRouterPort != nil, "advanced": map[string]string{"address_range": n.Range}})
+		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "devices_reach_each_other": n.Reach, "local_server": s.d.OnServerCreated != nil, "router_step": s.d.OpenRouterPort != nil, "advanced": map[string]string{"address_range": n.Range}})
 }
 
 var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$`)

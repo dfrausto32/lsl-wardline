@@ -13,8 +13,9 @@ Restart=on-failure
 RestartSec=3
 
 # Needs to create a network interface, nothing else.
-AmbientCapabilities=CAP_NET_ADMIN
-CapabilityBoundingSet=CAP_NET_ADMIN
+# CAP_DAC_OVERRIDE lets the server write the one kernel switch that decides whether devices can reach each other.
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_OVERRIDE
 StateDirectory=wardline-gateway
 StateDirectoryMode=0700
 NoNewPrivileges=yes

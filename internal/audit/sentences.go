@@ -43,3 +43,10 @@ func SentenceNameRemoved(actor, name string) string {
 func SentenceDeviceSetUp(device string) string {
 	return fmt.Sprintf("%s was set up and is ready to connect.", device)
 }
+
+func SentenceReachChanged(actor string, on bool) string {
+	if on {
+		return fmt.Sprintf("%s turned on letting devices reach each other.", actor)
+	}
+	return fmt.Sprintf("%s turned off letting devices reach each other.", actor)
+}

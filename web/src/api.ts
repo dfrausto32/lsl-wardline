@@ -145,9 +145,10 @@ export const api = {
   totpConfirm: (code: string) => request<object>("POST", "/api/totp/confirm", { code }),
   setServerAddress: (address: string) =>
     request<{ server_address: string; server_address_kind: "name" | "ip" }>("PUT", "/api/network/server-address", { address }),
+  setReach: (enabled: boolean) => request<{ devices_reach_each_other: boolean }>("PUT", "/api/network/devices-reach-each-other", { enabled }),
   routerForwarding: () => request<{ opened: boolean; shared: boolean; router_address: string; message: string }>("POST", "/api/network/router-forwarding"),
   publicAddress: () => request<{ address: string }>("GET", "/api/network/public-address"),
-  network: () => request<{ name: string; server_address: string; server_address_kind: "name" | "ip"; suggested_address?: string; local_server?: boolean; router_step?: boolean }>("GET", "/api/network"),
+  network: () => request<{ name: string; server_address: string; server_address_kind: "name" | "ip"; suggested_address?: string; local_server?: boolean; router_step?: boolean; devices_reach_each_other?: boolean }>("GET", "/api/network"),
   servers: () => request<ServerSummary[]>("GET", "/api/servers"),
   createServer: (name?: string) => request<NewServer>("POST", "/api/servers", { name }),
   home: () => request<Home>("GET", "/api/home"),

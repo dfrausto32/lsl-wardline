@@ -3,6 +3,7 @@ import { useLoad } from "../hooks";
 import { primary } from "../strings";
 import { Button, Card, LiveStatus } from "../components/ui";
 import { AddressStep, CommandStep } from "./ServerSteps";
+import { ReachCard } from "./ReachCard";
 
 /** Reached from Home when the server still needs setting up or is not responding. */
 export function ServerPage({ navigate }: { navigate: (to: string) => void }) {
@@ -31,6 +32,7 @@ export function ServerPage({ navigate }: { navigate: (to: string) => void }) {
           </div>
         )}
       </Card>
+      {net.server_address && status === "online" && <ReachCard initial={!!net.devices_reach_each_other} />}
     </div>
   );
 }

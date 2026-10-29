@@ -132,6 +132,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/network", s.admin(s.handleNetwork))
 	m.HandleFunc("GET /api/network/public-address", s.admin(s.handlePublicAddress))
 	m.HandleFunc("POST /api/network/router-forwarding", s.admin(s.handleRouterForwarding))
+	m.HandleFunc("PUT /api/network/devices-reach-each-other", s.admin(s.handleReachPut))
 	m.HandleFunc("GET /api/network/dynamic-dns", s.admin(s.handleDynamicDNSGet))
 	m.HandleFunc("PUT /api/network/dynamic-dns", s.admin(s.handleDynamicDNSPut))
 	m.HandleFunc("DELETE /api/network/dynamic-dns", s.admin(s.handleDynamicDNSDelete))

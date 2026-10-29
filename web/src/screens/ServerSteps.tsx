@@ -12,6 +12,16 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
   const [value, setValue] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [suggested, setSuggested] = useState(false);
+  useEffect(() => {
+    if (initial) return;
+    api.network().then((n) => {
+      if (n.suggested_address) {
+        setValue((v) => v || n.suggested_address!);
+        setSuggested(true);
+      }
+    }).catch(() => {}); // a suggestion is only a convenience
+  }, [initial]);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -30,6 +40,7 @@ export function AddressStep({ initial = "", onSaved }: { initial?: string; onSav
     <form onSubmit={submit} className="stack">
       <Field label={s.addressLabel} placeholder={s.addressPlaceholder} autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={value} onChange={(e) => setValue(e.target.value)} help={s.addressHelp} error={error} />
       {ip ? <p className="note" role="note">{s.addressIpNote}</p> : <p className="help">{s.addressRecommend}</p>}
+      {suggested && <p className="help">{s.addressSuggested}</p>}
       <Button type="submit" busy={busy}>{primary.common.continue}</Button>
     </form>
   );
@@ -63,7 +74,8 @@ export function CommandStep({ onOnline }: { onOnline: () => void }) {
   if (error && !online) return <p className="error" role="alert">{error}</p>;
   return (
     <div className="stack">
-      {created && !online && (
+      {created && !online && created.local && <p>{s.localServer}</p>}
+      {created && !online && !created.local && (
         <>
           <p>{s.commandHelp}</p>
           <div role="tablist" aria-label={s.commandTitle} className="tabs">

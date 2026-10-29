@@ -62,29 +62,27 @@ Your devices connect using an address you choose in the setup. If you own a doma
 
 Everything is one file, `wardline.exe`, and nothing else needs installing. Download it from the [latest release](https://github.com/dfrausto32/lsl-wardline/releases/latest).
 
-**The easy way: double-click it.** Windows asks for permission, then a window offers "Make this computer my server", "Add this computer to my network" and "Remove Wardline from this computer", and asks for what it needs (you paste the command the web app shows). It runs the same steps as the commands below.
+**The easy way: double-click it.** Windows asks for permission, then a Wardline window opens (no black command window). Choose **Make this computer my server**. It installs the web app, which also registers this computer as your server, and then the same window shows the Wardline setup: create your sign-in, name your network and choose the address devices use. There is no command to copy.
 
-**With commands:** open PowerShell **as administrator** in the folder that holds it.
+**The server address.** You can use this computer's own address (for example `192.168.1.50`); the setup screen fills it in for you. It works for devices on the same network. Two things to know: a computer's address can change, so give this one a fixed address in your router (often called "DHCP reservation" or "static lease"); and for devices away from home you need a public address or name and a router rule forwarding UDP port 51820 to this computer. A name such as `network.example.com` is the better long-term choice because you can repoint it later without touching any device.
 
-1. Start the web app. It finds this computer's address by itself and opens its port for your home or work network only:
+**"Windows protected your PC".** Windows shows this for any program it has not seen many times that is not signed with a paid certificate. Choose **More info**, then **Run anyway**. It goes away once Wardline is signed (see `BLOCKED.md`). Do not turn Windows protection off.
 
-   ```powershell
-   .\wardline.exe control install
-   ```
+**With commands instead:** open PowerShell **as administrator** in the folder that holds `wardline.exe`.
 
-   It prints the address other computers use, for example `http://192.168.1.50:8080`. Add `--public-url` to use a different one (for example a name behind HTTPS).
-2. On this computer, open `http://localhost:8080` and follow the setup screens. Choose the **Windows service** tab when it shows the server command, and run that command in the same PowerShell window:
+```powershell
+.\wardline.exe control install --with-server
+```
 
-   ```powershell
-   .\wardline.exe gateway install --control-url http://192.168.1.50:8080 --token <one-time code>
-   ```
+This installs the web app and the server in one service, opens its ports (the web port only for home and work networks), and prints the address other computers use. Add `--public-url` to use a different one. Then open `http://localhost:8080` and follow the setup screens; the server registers itself.
 
-   It registers this computer as the server, opens UDP port 51820, and starts it. The setup page updates by itself.
-3. Both parts are Windows services that start with Windows and restart if they stop. The program lives in `C:\Program Files\Wardline`; data is in `C:\ProgramData\Wardline-control` (database and secret key: **back it up**) and `C:\ProgramData\Wardline-server`, readable only by the system and administrators.
+If the server runs on a different computer than the web app, leave out `--with-server`, and on the server computer run the command from the setup page's **Windows service** tab (`.\wardline.exe gateway install --control-url ... --token ...`).
 
-To take them off again: `.\wardline.exe gateway uninstall` and `.\wardline.exe control uninstall`. Both keep their data folders.
+The program lives in `C:\Program Files\Wardline`. Data is in `C:\ProgramData\Wardline-control` (database and secret key: **back it up**) and `C:\ProgramData\Wardline-server`, readable only by the system and administrators. Both start with Windows and restart if they stop.
 
-If the other computers are on another network, the server address you give in setup must be reachable from the internet, and your router must forward UDP port 51820 (and TCP 8080, or your HTTPS address, for the web app) to this computer.
+To take them off again, use **Remove Wardline from this computer** in the window, or `.\wardline.exe control uninstall` and `.\wardline.exe gateway uninstall`. Data folders are kept.
+
+In PowerShell, `wardline.exe` is a Windows app, so a command's output may appear after the prompt has already come back. That is normal.
 
 ## 4. Add computers
 

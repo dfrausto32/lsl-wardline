@@ -74,6 +74,8 @@ export interface ServerSummary {
 }
 
 export interface NewServer {
+  /** True when this computer is also the server, so nothing needs to be copied. */
+  local?: boolean;
   id: string;
   name: string;
   install: { linux: string; windows: string; docker: string; compose: string };
@@ -143,7 +145,7 @@ export const api = {
   totpConfirm: (code: string) => request<object>("POST", "/api/totp/confirm", { code }),
   setServerAddress: (address: string) =>
     request<{ server_address: string; server_address_kind: "name" | "ip" }>("PUT", "/api/network/server-address", { address }),
-  network: () => request<{ name: string; server_address: string; server_address_kind: "name" | "ip" }>("GET", "/api/network"),
+  network: () => request<{ name: string; server_address: string; server_address_kind: "name" | "ip"; suggested_address?: string }>("GET", "/api/network"),
   servers: () => request<ServerSummary[]>("GET", "/api/servers"),
   createServer: (name?: string) => request<NewServer>("POST", "/api/servers", { name }),
   home: () => request<Home>("GET", "/api/home"),

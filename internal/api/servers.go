@@ -114,7 +114,11 @@ func (s *Server) handleServerCreate(w http.ResponseWriter, r *http.Request, admi
 		s.serverError(w, r, err)
 		return
 	}
-	s.json(w, http.StatusCreated, map[string]any{"id": id, "name": name, "expires_at": expires, "install": s.installInstructions(tok)})
+	local := s.d.OnServerCreated != nil
+	if local {
+		s.d.OnServerCreated(tok)
+	}
+	s.json(w, http.StatusCreated, map[string]any{"id": id, "name": name, "expires_at": expires, "install": s.installInstructions(tok), "local": local})
 }
 
 func (s *Server) serverStatus(publicKey string, lastSeen *time.Time) string {

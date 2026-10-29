@@ -3,6 +3,8 @@
 param([switch]$Keep)
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
+# Never publish on 8080 during tests: a real install of Wardline on this computer may be using it.
+if (-not $env:WARDLINE_LAB_PORT) { $env:WARDLINE_LAB_PORT = "18080" }
 $compose = @("compose", "-f", "compose.dev.yaml", "--profile", "lab", "--profile", "ui")
 $down = Join-Path $PSScriptRoot "lab-down.ps1"
 

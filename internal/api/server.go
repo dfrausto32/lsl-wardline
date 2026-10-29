@@ -41,6 +41,9 @@ type Deps struct {
 	SecureCookies bool
 	HoldTime      time.Duration // how long a server's "any news?" request waits (default 25s)
 	Static        http.Handler  // the web app, served for everything that is not /api or /gateway
+	// OnServerCreated, when set, means this computer is also the server: it is given the one-time install
+	// code the moment it is made, so nobody has to copy a command. It must not block.
+	OnServerCreated func(code string)
 }
 
 type Server struct {

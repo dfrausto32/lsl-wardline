@@ -60,7 +60,11 @@ Your devices connect using an address you choose in the setup. If you own a doma
 
 ### Using a Windows computer as the server
 
-Everything is one file, `wardline.exe`, and nothing else needs installing. Download it from the [latest release](https://github.com/dfrausto32/lsl-wardline/releases/latest), then open PowerShell **as administrator** in the folder that holds it.
+Everything is one file, `wardline.exe`, and nothing else needs installing. Download it from the [latest release](https://github.com/dfrausto32/lsl-wardline/releases/latest).
+
+**The easy way: double-click it.** Windows asks for permission, then a window offers "Make this computer my server", "Add this computer to my network" and "Remove Wardline from this computer", and asks for what it needs (you paste the command the web app shows). It runs the same steps as the commands below.
+
+**With commands:** open PowerShell **as administrator** in the folder that holds it.
 
 1. Start the web app. It finds this computer's address by itself and opens its port for your home or work network only:
 

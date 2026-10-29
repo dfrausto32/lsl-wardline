@@ -37,21 +37,7 @@ func agentCmd() *cobra.Command {
 	controlURL, token, stateDir, iface, backend, level := &o.controlURL, &o.token, &o.stateDir, &o.iface, &o.backend, &o.level
 	var refreshCheck time.Duration
 
-	build := func() (*agent.Agent, error) {
-		if o.controlURL == "" {
-			return nil, errors.New("the control plane address is missing (--control-url or WARDLINE_CONTROL_URL)")
-		}
-		b, kind, err := chooseBackend(o.backend)
-		if err != nil {
-			return nil, err
-		}
-		log := wlog.New(os.Stderr, o.level)
-		log.Info("using WireGuard backend", "backend", kind)
-		return agent.New(agent.Config{
-			StateDir: o.stateDir, Iface: o.iface, ControlURL: o.controlURL, EnrollToken: o.token, Version: version,
-			Control: agent.NewHTTPControl(o.controlURL, &http.Client{}), Backend: b, Log: log, RefreshCheckEvery: refreshCheck,
-		}), nil
-	}
+	build := func() (*agent.Agent, error) { return buildAgent(o, refreshCheck) }
 
 	c := &cobra.Command{
 		Use:   "agent",
@@ -120,4 +106,21 @@ func agentCmd() *cobra.Command {
 // agentOpts are the flags every agent command shares.
 type agentOpts struct {
 	controlURL, token, stateDir, iface, backend, level string
+}
+
+// buildAgent makes the device role from its flags.
+func buildAgent(o *agentOpts, refreshCheck time.Duration) (*agent.Agent, error) {
+	if o.controlURL == "" {
+		return nil, errors.New("the control plane address is missing (--control-url or WARDLINE_CONTROL_URL)")
+	}
+	b, kind, err := chooseBackend(o.backend)
+	if err != nil {
+		return nil, err
+	}
+	log := wlog.New(os.Stderr, o.level)
+	log.Info("using WireGuard backend", "backend", kind)
+	return agent.New(agent.Config{
+		StateDir: o.stateDir, Iface: o.iface, ControlURL: o.controlURL, EnrollToken: o.token, Version: version,
+		Control: agent.NewHTTPControl(o.controlURL, &http.Client{}), Backend: b, Log: log, RefreshCheckEvery: refreshCheck,
+	}), nil
 }

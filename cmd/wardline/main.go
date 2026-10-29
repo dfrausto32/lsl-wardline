@@ -28,6 +28,7 @@ func newRoot() *cobra.Command {
 		Short:         "Private networks for people who do not know networking",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		RunE:          func(cmd *cobra.Command, _ []string) error { return platformRoot(cmd) },
 	}
 	root.AddCommand(controlCmd(), gatewayCmd(), agentCmd(), auditCmd(), &cobra.Command{
 		Use:   "version",

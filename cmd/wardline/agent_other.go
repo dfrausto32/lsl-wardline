@@ -17,3 +17,6 @@ func runAsService(string, func(ctx context.Context) error) (bool, error) { retur
 func platformAgentCommands(*cobra.Command, *agentOpts, func() (*agent.Agent, error)) {}
 func platformControlCommands(*cobra.Command, *controlOpts)                           {}
 func platformGatewayCommands(*cobra.Command, *gatewayOpts)                           {}
+
+// platformRoot is what running the program with nothing after its name does. Only Windows has a menu for people who double-click it.
+func platformRoot(cmd *cobra.Command) error { return cmd.Help() }

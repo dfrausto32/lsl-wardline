@@ -12,9 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// The server's WireGuard port; the web app tells devices to use it.
-const gatewayPort = 51820
-
 // installControlService installs the web app and returns the address other computers use for it.
 func installControlService(ctx context.Context, out io.Writer, o *controlOpts) (string, error) {
 	url := o.publicURL

@@ -73,3 +73,6 @@ func outboundIP() (string, error) {
 	defer c.Close()
 	return c.LocalAddr().(*net.UDPAddr).IP.String(), nil
 }
+
+// The server's WireGuard port; the web app tells devices to use it.
+const gatewayPort = 51820

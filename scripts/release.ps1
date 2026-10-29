@@ -1,5 +1,5 @@
 # Builds everything someone needs to install Wardline, into dist/release:
-#   wardline-linux-amd64, wardline-linux-arm64, wardline-windows-amd64.exe
+#   wardline-linux-amd64, wardline-linux-arm64, wardline.exe (Windows)
 #   wardline-linux-install.tar.gz   the program for Linux plus the service files and install script
 #   SHA256SUMS.txt                  checksums of every file above
 # Nothing is published. Publishing to GitHub Releases needs a repository first (see BLOCKED.md); the command is printed at the end.
@@ -21,7 +21,9 @@ foreach ($t in $targets) {
     $tmp = "dist/build-$($t.os)-$($t.arch)"
     docker build --target binary --build-arg "GOOS=$($t.os)" --build-arg "GOARCH=$($t.arch)" --build-arg "VERSION=$Version" --output $tmp .
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    Move-Item "$tmp/wardline" "$out/wardline-$($t.os)-$($t.arch)$($t.ext)"
+    # The Windows program is plain wardline.exe so the command the web app shows runs as is.
+    $name = if ($t.os -eq "windows") { "wardline.exe" } else { "wardline-$($t.os)-$($t.arch)" }
+    Move-Item "$tmp/wardline" "$out/$name"
     Remove-Item -Recurse -Force $tmp
 }
 

@@ -137,6 +137,10 @@ sudo -u wardline wardline audit export --data /var/lib/wardline-control > activi
 
 `audit verify` tells you if any entry was changed or removed.
 
+## A cloud server (when your own connection cannot be reached from outside)
+
+See `docs/AWS-LIGHTSAIL.md`. It runs the web app and the server together on a small rented machine with `sudo sh install-linux.sh allinone <public-url>`, and every computer connects out to it.
+
 ## Using containers instead
 
 If you would rather use Docker, build the image once from the `app` folder:

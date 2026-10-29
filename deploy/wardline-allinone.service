@@ -1,0 +1,32 @@
+[Unit]
+Description=Wardline (the web app and the server your devices connect to, on one computer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=wardline
+Group=wardline
+EnvironmentFile=/etc/wardline/allinone.env
+Environment=WARDLINE_DATA=/var/lib/wardline-control
+Environment=WARDLINE_SERVER_DIR=/var/lib/wardline-server
+Environment=WARDLINE_WITH_SERVER=1
+ExecStart=/usr/local/bin/wardline control
+Restart=on-failure
+RestartSec=3
+
+# Needs to create a network interface and flip the one kernel switch for relaying between devices.
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_OVERRIDE
+StateDirectory=wardline-control wardline-server
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

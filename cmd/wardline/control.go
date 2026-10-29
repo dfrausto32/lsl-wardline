@@ -54,7 +54,7 @@ func controlCmd() *cobra.Command {
 	f.StringVar(&o.listen, "listen", envOr("WARDLINE_LISTEN", ":8080"), "address to listen on")
 	f.StringVar(&o.data, "data", envOr("WARDLINE_DATA", defaultControlDir()), "folder for the database and secret key")
 	f.StringVar(&o.publicURL, "public-url", envOr("WARDLINE_PUBLIC_URL", ""), "the address servers use to reach this control plane")
-	f.BoolVar(&o.withServer, "with-server", false, "this computer is also the server: register it automatically when the web app creates the server")
+	f.BoolVar(&o.withServer, "with-server", envOr("WARDLINE_WITH_SERVER", "") == "1", "this computer is also the server: register it automatically when the web app creates the server")
 	f.StringVar(&o.serverDir, "server-dir", envOr("WARDLINE_SERVER_DIR", defaultServerDir()), "with --with-server: folder where the server keeps its identity")
 	f.StringVar(&o.level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
 	platformControlCommands(c, o)

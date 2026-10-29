@@ -3,6 +3,7 @@
 #   sudo sh install-linux.sh gateway <control-url> <one-time-code>   a server that devices connect to
 #   sudo sh install-linux.sh agent   <control-url> <one-time-code>   a computer that joins the network
 #   sudo sh install-linux.sh control <public-url>                    the web app
+#   sudo sh install-linux.sh allinone <public-url>                   the web app and the server on one computer (a cloud server)
 # Run it from a folder that holds the `wardline` binary and the .service files
 # (or set WARDLINE_BIN). Safe to run again: it replaces the binary and restarts.
 set -eu
@@ -15,6 +16,7 @@ usage() {
   echo "Usage: sudo sh install-linux.sh gateway <control-url> <one-time-code>" >&2
   echo "       sudo sh install-linux.sh agent <control-url> <one-time-code>" >&2
   echo "       sudo sh install-linux.sh control <public-url>" >&2
+  echo "       sudo sh install-linux.sh allinone <public-url>" >&2
   exit 2
 }
 
@@ -24,7 +26,7 @@ command -v systemctl >/dev/null 2>&1 || { echo "This computer does not use syste
 
 case "$role" in
   gateway|agent) [ $# -eq 3 ] || usage ;;
-  control) [ $# -eq 2 ] || usage ;;
+  control|allinone) [ $# -eq 2 ] || usage ;;
   *) usage ;;
 esac
 [ -f "$here/wardline-$role.service" ] || { echo "Missing wardline-$role.service next to this script." >&2; exit 1; }
@@ -39,7 +41,7 @@ umask 077
 case "$role" in
   gateway) printf 'WARDLINE_CONTROL_URL=%s\nWARDLINE_ENROLL_TOKEN=%s\n' "$2" "$3" > "$envfile.new" ;;
   agent)   printf 'WARDLINE_CONTROL_URL=%s\n' "$2" > "$envfile.new" ;;
-  control) printf 'WARDLINE_PUBLIC_URL=%s\n' "$2" > "$envfile.new" ;;
+  control|allinone) printf 'WARDLINE_PUBLIC_URL=%s\n' "$2" > "$envfile.new" ;;
 esac
 chown root:wardline "$envfile.new"
 chmod 0640 "$envfile.new"

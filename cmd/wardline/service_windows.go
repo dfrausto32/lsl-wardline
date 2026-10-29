@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/spf13/cobra"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
@@ -135,8 +134,8 @@ func stopService(s *mgr.Service) {
 
 // installWinService copies the program into place, applies setup, opens the firewall, and creates and starts the service.
 // Running it again updates everything in place.
-func installWinService(ctx context.Context, cmd *cobra.Command, sp winSvc) error {
-	say := func(s string) { fmt.Fprintln(cmd.OutOrStdout(), s) }
+func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
+	say := func(s string) { fmt.Fprintln(out, s) }
 	m, err := mgr.Connect()
 	if err != nil {
 		return needAdmin()

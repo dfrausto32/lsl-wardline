@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -14,30 +15,68 @@ import (
 // The server's WireGuard port; the web app tells devices to use it.
 const gatewayPort = 51820
 
+// installControlService installs the web app and returns the address other computers use for it.
+func installControlService(ctx context.Context, out io.Writer, o *controlOpts) (string, error) {
+	url := o.publicURL
+	if url == "" {
+		ip, err := outboundIP()
+		if err != nil {
+			return "", errors.New("could not work out this computer's address; add --public-url http://<this computer's address>:8080")
+		}
+		if url, err = publicURLFor(ip, o.listen); err != nil {
+			return "", err
+		}
+	}
+	err := installWinService(ctx, out, winSvc{
+		name: controlServiceName, display: "Wardline web app", desc: "The Wardline web app and database for your private network.",
+		args:     controlServiceArgs(o.listen, o.data, url),
+		lockDirs: []string{o.data},
+		firewall: controlFirewall(o.listen),
+		done: func() string {
+			return fmt.Sprintf("The Wardline web app is running.\nOn this computer, open http://localhost%s to set up your network.\nOther computers on your network use %s", o.listen, url)
+		},
+	})
+	return url, err
+}
+
+func installGatewayService(ctx context.Context, out io.Writer, o *gatewayOpts) error {
+	if o.controlURL == "" || o.token == "" {
+		return errors.New("both --control-url and --token are needed; copy the whole command from the Wardline setup page")
+	}
+	name := o.name
+	if name == "" {
+		name, _ = os.Hostname()
+	}
+	return installWinService(ctx, out, winSvc{
+		name: gatewayServiceName, display: "Wardline server", desc: "Lets your devices connect to your private network.",
+		args:     gatewayServiceArgs(o.controlURL, o.stateDir, o.iface, name),
+		lockDirs: []string{o.stateDir},
+		firewall: gatewayFirewall(gatewayPort),
+		// The one-time code is used here, once, and is not kept in the service settings.
+		setup: func(ctx context.Context) error {
+			g, err := buildGateway(o)
+			if err != nil {
+				return err
+			}
+			if err := g.Start(ctx); err != nil {
+				return err
+			}
+			fmt.Fprintln(out, "This computer is registered as your server.")
+			return nil
+		},
+		done: func() string {
+			return "The Wardline server is running. Your setup page will show it online within a minute."
+		},
+	})
+}
+
 func platformControlCommands(c *cobra.Command, o *controlOpts) {
 	c.AddCommand(&cobra.Command{
 		Use:   "install",
 		Short: "Run the Wardline web app on this computer, starting with Windows (run as administrator)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			url := o.publicURL
-			if url == "" {
-				ip, err := outboundIP()
-				if err != nil {
-					return errors.New("could not work out this computer's address; add --public-url http://<this computer's address>:8080")
-				}
-				if url, err = publicURLFor(ip, o.listen); err != nil {
-					return err
-				}
-			}
-			return installWinService(cmd.Context(), cmd, winSvc{
-				name: controlServiceName, display: "Wardline web app", desc: "The Wardline web app and database for your private network.",
-				args:     controlServiceArgs(o.listen, o.data, url),
-				lockDirs: []string{o.data},
-				firewall: controlFirewall(o.listen),
-				done: func() string {
-					return fmt.Sprintf("The Wardline web app is running.\nOn this computer, open http://localhost%s to set up your network.\nOther computers on your network use %s", o.listen, url)
-				},
-			})
+			_, err := installControlService(cmd.Context(), cmd.OutOrStdout(), o)
+			return err
 		},
 	}, &cobra.Command{
 		Use:   "uninstall",
@@ -57,34 +96,7 @@ func platformGatewayCommands(c *cobra.Command, o *gatewayOpts) {
 		Use:   "install",
 		Short: "Make this computer your Wardline server, starting with Windows (run as administrator)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if o.controlURL == "" || o.token == "" {
-				return errors.New("both --control-url and --token are needed; copy the whole command from the Wardline setup page")
-			}
-			name := o.name
-			if name == "" {
-				name, _ = os.Hostname()
-			}
-			return installWinService(cmd.Context(), cmd, winSvc{
-				name: gatewayServiceName, display: "Wardline server", desc: "Lets your devices connect to your private network.",
-				args:     gatewayServiceArgs(o.controlURL, o.stateDir, o.iface, name),
-				lockDirs: []string{o.stateDir},
-				firewall: gatewayFirewall(gatewayPort),
-				// The one-time code is used here, once, and is not kept in the service settings.
-				setup: func(ctx context.Context) error {
-					g, err := buildGateway(o)
-					if err != nil {
-						return err
-					}
-					if err := g.Start(ctx); err != nil {
-						return err
-					}
-					fmt.Fprintln(cmd.OutOrStdout(), "This computer is registered as your server.")
-					return nil
-				},
-				done: func() string {
-					return "The Wardline server is running. Your setup page will show it online within a minute."
-				},
-			})
+			return installGatewayService(cmd.Context(), cmd.OutOrStdout(), o)
 		},
 	}, &cobra.Command{
 		Use:   "uninstall",

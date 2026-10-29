@@ -14,19 +14,13 @@ const KINDS: Kind[] = [
   { platform: "linux", deviceName: "Sam's Linux computer", phone: false, agent: true },
 ];
 
-async function startAdd(page: Page, person: string, kind: keyof typeof primary.platform) {
+async function startAdd(page: Page, name: string, kind: keyof typeof primary.platform) {
   await page.goto("/add");
-  await expect(page.getByRole("heading", { name: a.whoseTitle })).toBeVisible();
-  const existing = page.getByRole("button", { name: person, exact: true });
-  if (await existing.count()) {
-    await existing.click();
-  } else {
-    if (!(await page.getByLabel(a.newPersonLabel).count())) await page.getByRole("button", { name: a.someoneNew }).click();
-    await page.getByLabel(a.newPersonLabel).fill(person);
-    await page.getByRole("button", { name: primary.common.continue }).click();
-  }
   await expect(page.getByRole("heading", { name: a.kindTitle })).toBeVisible();
   await page.getByRole("button", { name: primary.platform[kind] }).click();
+  await expect(page.getByRole("heading", { name: a.nameTitle })).toBeVisible();
+  await page.getByLabel(a.nameLabel).fill(name);
+  await page.getByRole("button", { name: primary.common.continue }).click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -35,7 +29,7 @@ test.beforeEach(async ({ page }) => {
 
 for (const k of KINDS) {
   test(`add ${k.platform} (UX flow 2)`, async ({ page }) => {
-    await startAdd(page, "Sam", k.platform);
+    await startAdd(page, k.deviceName, k.platform);
 
     await expect(page.getByRole("heading", { name: k.deviceName })).toBeVisible();
     await expect(page.getByText(fmt(a.waiting, { name: k.deviceName }))).toBeVisible();
@@ -77,7 +71,7 @@ for (const k of KINDS) {
 }
 
 test("a computer set up with the agent connects, and the page updates by itself", async ({ page }) => {
-  await startAdd(page, "Jo", "linux");
+  await startAdd(page, "Jo's Linux computer", "linux");
   await expect(page.getByRole("heading", { name: "Jo's Linux computer" })).toBeVisible();
   const command = await page.locator("pre").first().innerText();
   await expect(page.getByText(fmt(a.waiting, { name: "Jo's Linux computer" }))).toBeVisible();
@@ -88,8 +82,8 @@ test("a computer set up with the agent connects, and the page updates by itself"
 });
 
 test("a downloaded file connects a computer, and the page updates by itself", async ({ page }) => {
-  await startAdd(page, "Sam", "macos");
-  // A second Mac for the same person gets its own distinct name.
+  await startAdd(page, "Sam's Mac", "macos");
+  // A second machine with the same name gets its own distinct name.
   await expect(page.getByRole("heading", { name: "Sam's Mac 2" })).toBeVisible();
 
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: a.downloadButton }).click()]);
@@ -109,8 +103,8 @@ test("a downloaded file connects a computer, and the page updates by itself", as
   await review(page, "add-connected");
 });
 
-test("a second person's computer connects too", async ({ page }) => {
-  await startAdd(page, "Alex", "macos");
+test("a second machine connects too", async ({ page }) => {
+  await startAdd(page, "Alex's Mac", "macos");
   await expect(page.getByRole("heading", { name: "Alex's Mac" })).toBeVisible();
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: a.downloadButton }).click()]);
   const config = fs.readFileSync((await download.path())!, "utf8");
@@ -129,5 +123,5 @@ test("the add button is always within reach", async ({ page }) => {
   expect(box!.y + box!.height).toBeLessThanOrEqual(812);
   expect(box!.height).toBeGreaterThanOrEqual(44);
   await fab.click();
-  await expect(page.getByRole("heading", { name: a.whoseTitle })).toBeVisible();
+  await expect(page.getByRole("heading", { name: a.kindTitle })).toBeVisible();
 });

@@ -58,6 +58,7 @@ export interface Home {
   network: { name: string; server_address: string; server_address_kind: "name" | "ip" };
   server: { status: "none" | "waiting" | "online" | "offline"; name?: string };
   people: Person[];
+  devices: Device[];
   attention: Attention[];
 }
 
@@ -155,8 +156,9 @@ export const api = {
   people: () => request<PersonSummary[]>("GET", "/api/people"),
   addPerson: (name: string) => request<PersonSummary>("POST", "/api/people", { name }),
   device: (id: string) => request<Device>("GET", `/api/devices/${id}`),
-  addDevice: (b: { person_id: string; platform: Platform }) => request<AddedDevice>("POST", "/api/devices", b),
-  addAgentDevice: (b: { person_id: string; platform: Platform }) => request<AddedAgentDevice>("POST", "/api/devices", { ...b, agent: true }),
+  addDevice: (b: { platform: Platform; name?: string }) => request<AddedDevice>("POST", "/api/devices", b),
+  addAgentDevice: (b: { platform: Platform; name?: string }) => request<AddedAgentDevice>("POST", "/api/devices", { ...b, agent: true }),
+  renameDevice: (id: string, name: string) => request<Device>("PATCH", `/api/devices/${id}`, { name }),
   removeDevice: (id: string) => request<object>("DELETE", `/api/devices/${id}`),
   activity: (f: { person_id?: string; device_id?: string } = {}) => {
     const q = new URLSearchParams();

@@ -74,7 +74,7 @@ export function Home({ navigate, removed }: { navigate: (to: string) => void; re
   if (error && !home) return <p className="error" role="alert">{error}</p>;
   if (!home) return <p role="status">{primary.common.loading}</p>;
 
-  const deviceCount = home.people.reduce((n, p) => n + p.devices.length, 0);
+  const deviceCount = home.devices.length;
   const serverReady = home.server.status === "online" || home.server.status === "offline";
   const serverText = { online: h.serverOnline, offline: h.serverOffline, waiting: h.serverWaiting, none: h.serverNone }[home.server.status];
 
@@ -113,26 +113,16 @@ export function Home({ navigate, removed }: { navigate: (to: string) => void; re
         </Card>
       )}
 
-      {home.people.length > 0 && (
-        <section aria-labelledby="people-h" className="stack">
-          <h2 id="people-h">{h.peopleHeading}</h2>
-          {home.people.map((p) => (
-            <Card key={p.id} className="person" aria-label={p.name}>
-              <h3>{p.name}</h3>
-              {p.devices.length === 0 ? (
-                <div className="empty-row">
-                  <span>{h.noDevices}</span>
-                  <Button variant="secondary" onClick={() => navigate(`/add?person=${p.id}`)}>{h.addDevice}</Button>
-                </div>
-              ) : (
-                <ul className="devices">
-                  {p.devices.map((d) => (
-                    <DeviceRow key={d.id} d={d} onOpen={() => navigate(`/devices/${d.id}`)} />
-                  ))}
-                </ul>
-              )}
-            </Card>
-          ))}
+      {deviceCount > 0 && (
+        <section aria-labelledby="machines-h" className="stack">
+          <h2 id="machines-h">{h.machinesHeading}</h2>
+          <Card>
+            <ul className="devices">
+              {home.devices.map((d) => (
+                <DeviceRow key={d.id} d={d} onOpen={() => navigate(`/devices/${d.id}`)} />
+              ))}
+            </ul>
+          </Card>
         </section>
       )}
 

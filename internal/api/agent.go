@@ -37,14 +37,14 @@ func (s *Server) createAgentDevice(w http.ResponseWriter, r *http.Request, admin
 	}
 	defer tx.Rollback()
 
-	var personName string
-	if err := tx.QueryRowContext(ctx, `SELECT display_name FROM people WHERE id=?`, personID).Scan(&personName); err != nil {
-		s.fail(w, http.StatusBadRequest, "Choose whose device this is.")
-		return
-	}
 	n, err := s.network(ctx, tx)
 	if err != nil {
 		s.serverError(w, r, err)
+		return
+	}
+	personID, personName, perr := s.personFor(ctx, tx, personID, n.ID)
+	if perr != nil {
+		s.fail(w, http.StatusBadRequest, perr.Error())
 		return
 	}
 	if n.ServerAddress == "" {
@@ -60,7 +60,7 @@ func (s *Server) createAgentDevice(w http.ResponseWriter, r *http.Request, admin
 
 	name := strings.TrimSpace(requestedName)
 	if name == "" {
-		name = fmt.Sprintf("%s's %s", personName, platformLabels[platform])
+		name = machineName(personName, platformLabels[platform])
 	}
 	base, nth := name, 1
 	for {

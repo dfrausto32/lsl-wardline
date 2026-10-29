@@ -50,3 +50,7 @@ func SentenceReachChanged(actor string, on bool) string {
 	}
 	return fmt.Sprintf("%s turned off letting devices reach each other.", actor)
 }
+
+func SentenceDeviceRenamed(old, name string) string {
+	return fmt.Sprintf("%s was renamed to %s.", old, name)
+}

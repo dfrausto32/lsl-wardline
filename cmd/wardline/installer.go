@@ -64,6 +64,13 @@ func installerHandler(key, webURL string, a installActions, quit func(), openBro
 		quit()
 	})
 
+	return guarded(key, installerPage, mux)
+}
+
+// guarded wraps a local web page so that it is only reachable from this computer's own names and only
+// by whoever holds the key: the page needs the key in its address, everything else needs it in a header
+// (which another website cannot add to a request without this program agreeing).
+func guarded(key string, page []byte, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only this computer's own names, so a web page on the internet cannot reach it by pointing a name at 127.0.0.1.
 		if host, _, err := net.SplitHostPort(r.Host); err != nil || (host != "127.0.0.1" && host != "localhost") {
@@ -77,14 +84,14 @@ func installerHandler(key, webURL string, a installActions, quit func(), openBro
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
-			w.Write(installerPage)
+			w.Write(page)
 			return
 		}
-		if r.Method != http.MethodPost || !sameKey(r.Header.Get("X-Wardline-Key"), key) {
+		if !sameKey(r.Header.Get("X-Wardline-Key"), key) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		mux.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 

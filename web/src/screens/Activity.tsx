@@ -6,16 +6,16 @@ import { primary } from "../strings";
 
 const t = primary.activity;
 
-export function Activity({ initialPerson, initialDevice }: { initialPerson: string | null; initialDevice: string | null }) {
-  const [filter, setFilter] = useState<string>(initialDevice ? `device:${initialDevice}` : initialPerson ? `person:${initialPerson}` : "");
+export function Activity({ initialDevice }: { initialDevice: string | null }) {
+  const [filter, setFilter] = useState<string>(initialDevice ? `device:${initialDevice}` : "");
   const { data: home } = useLoad(() => api.home());
-  const params = filter.startsWith("device:") ? { device_id: filter.slice(7) } : filter.startsWith("person:") ? { person_id: filter.slice(7) } : {};
+  const params = filter.startsWith("device:") ? { device_id: filter.slice(7) } : {};
   const query = new URLSearchParams(params as Record<string, string>).toString();
   const { data: items, error, reload } = useLoad(() => api.activity(params), 4000);
   useEffect(() => {
     void reload();
   }, [filter, reload]);
-  const devices = home?.people.flatMap((p) => p.devices) ?? [];
+  const devices = home?.devices ?? [];
 
   return (
     <div className="stack">
@@ -25,9 +25,6 @@ export function Activity({ initialPerson, initialDevice }: { initialPerson: stri
           <span>{t.filterLabel}</span>
           <select value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="">{t.everyone}</option>
-            {(home?.people ?? []).map((p) => (
-              <option key={p.id} value={`person:${p.id}`}>{p.name}</option>
-            ))}
             {devices.map((d) => (
               <option key={d.id} value={`device:${d.id}`}>{d.name}</option>
             ))}

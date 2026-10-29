@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ApiError, api } from "../api";
 import { exactTime, formatBytes, relativeTime } from "../format";
 import { messageOf, useLoad } from "../hooks";
 import { advanced, fmt, primary } from "../strings";
-import { Button, Card, ConfirmDialog, PlatformIcon, StatusChip } from "../components/ui";
+import { Button, Card, ConfirmDialog, Field, PlatformIcon, StatusChip } from "../components/ui";
 
 const d = primary.device;
 
@@ -60,12 +60,10 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
             <dt>{d.added}</dt>
             <dd title={exactTime(dev.added_at)}>{relativeTime(dev.added_at)}</dd>
           </div>
-          <div>
-            <dt>{d.owner}</dt>
-            <dd>{dev.person_name}</dd>
-          </div>
         </dl>
       </Card>
+
+      <RenameCard id={dev.id} name={dev.name} />
 
       {dev.agent?.problem && (
         <Card className="soft">
@@ -78,7 +76,7 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
         <Card className="soft">
           <h2>{d.refreshTitle}</h2>
           <p>{d.refreshBody}</p>
-          <Button variant="secondary" onClick={() => navigate(`/add?person=${dev.person_id}`)}>{d.refreshButton}</Button>
+          <Button variant="secondary" onClick={() => navigate("/add")}>{d.refreshButton}</Button>
         </Card>
       )}
 
@@ -113,5 +111,37 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
         onCancel={() => setConfirming(false)}
       />
     </div>
+  );
+}
+
+/** Change what a machine is called. */
+function RenameCard({ id, name }: { id: string; name: string }) {
+  const [value, setValue] = useState(name);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setValue(name), [name]);
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.renameDevice(id, value);
+      setNote({ ok: true, text: d.renameSaved });
+    } catch (err) {
+      setNote({ ok: false, text: messageOf(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card>
+      <form className="stack" onSubmit={save}>
+        <Field label={d.renameLabel} maxLength={60} value={value} onChange={(e) => setValue(e.target.value)} error={note && !note.ok ? note.text : null} />
+        <div className="actions">
+          <Button type="submit" variant="secondary" busy={busy} disabled={value.trim() === "" || value.trim() === name}>{d.renameSave}</Button>
+        </div>
+        {note?.ok && <p className="note" role="status">{note.text}</p>}
+      </form>
+    </Card>
   );
 }

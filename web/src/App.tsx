@@ -64,9 +64,9 @@ export default function App() {
 
   const { path, query } = parse(loc);
   let page;
-  if (path === "/add") page = <AddDevice navigate={navigate} personId={query.get("person")} />;
+  if (path === "/add") page = <AddDevice navigate={navigate} />;
   else if (path.startsWith("/devices/")) page = <DeviceDetails id={path.slice("/devices/".length)} navigate={navigate} />;
-  else if (path === "/activity") page = <Activity initialPerson={query.get("person")} initialDevice={query.get("device")} />;
+  else if (path === "/activity") page = <Activity initialDevice={query.get("device")} />;
   else if (path === "/server") page = <ServerPage navigate={navigate} />;
   else page = <Home navigate={navigate} removed={query.get("removed")} />;
 

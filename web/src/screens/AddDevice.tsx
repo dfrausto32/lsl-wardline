@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { AddedAgentDevice, AddedDevice, ApiError, Platform, PersonSummary, api } from "../api";
+import { AddedAgentDevice, AddedDevice, ApiError, Platform, api } from "../api";
 import { messageOf, useLoad } from "../hooks";
 import { fmt, primary } from "../strings";
 import { Button, Card, CopyBox, Field, LiveStatus, PlatformIcon } from "../components/ui";
@@ -25,25 +25,15 @@ function downloadFile(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Add a device (UX flow 2): whose, what kind, then the code or file and a live check. */
-export function AddDevice({ navigate, personId }: { navigate: (to: string) => void; personId: string | null }) {
-  const { data: people } = useLoad(() => api.people());
-  const [person, setPerson] = useState<PersonSummary | null>(null);
+/** Add a machine (UX flow 2): what kind, what to call it, then the code or file and a live check. */
+export function AddDevice({ navigate }: { navigate: (to: string) => void }) {
   const [platform, setPlatform] = useState<Platform | null>(null);
+  const [name, setName] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (personId && people && !person) setPerson(people.find((p) => p.id === personId) ?? null);
-  }, [personId, people, person]);
-
-  if (!people) return <p role="status">{primary.common.loading}</p>;
-
-  if (!person) {
-    return <WhoStep people={people} onPick={setPerson} />;
-  }
   if (!platform) {
     return (
       <div className="stack">
-        <p className="progress">{fmt(a.stepOf, { n: 2, total: 3 })}</p>
+        <p className="progress">{fmt(a.stepOf, { n: 1, total: 3 })}</p>
         <h1>{a.kindTitle}</h1>
         <div className="kinds">
           {PLATFORMS.map((p) => (
@@ -53,66 +43,42 @@ export function AddDevice({ navigate, personId }: { navigate: (to: string) => vo
             </button>
           ))}
         </div>
-        <Button variant="quiet" onClick={() => setPerson(null)}>{primary.common.back}</Button>
       </div>
     );
   }
-  const again = () => { setPlatform(null); setPerson(null); };
+  if (name === null) {
+    return <NameStep platform={platform} onPick={setName} onBack={() => setPlatform(null)} />;
+  }
+  const again = () => { setPlatform(null); setName(null); };
   return usesAgent(platform)
-    ? <ShowAgentSetup person={person} platform={platform} navigate={navigate} onAnother={again} />
-    : <ShowCode person={person} platform={platform} navigate={navigate} onAnother={again} />;
+    ? <ShowAgentSetup name={name} platform={platform} navigate={navigate} onAnother={again} />
+    : <ShowCode name={name} platform={platform} navigate={navigate} onAnother={again} />;
 }
 
-function WhoStep({ people, onPick }: { people: PersonSummary[]; onPick: (p: PersonSummary) => void }) {
-  const [adding, setAdding] = useState(people.length === 0);
-  const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function create(e: FormEvent) {
+/** What to call it. Left empty, it is named after its kind, such as "Windows computer". */
+function NameStep({ platform, onPick, onBack }: { platform: Platform; onPick: (name: string) => void; onBack: () => void }) {
+  const [value, setValue] = useState("");
+  function next(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      onPick(await api.addPerson(name));
-    } catch (err) {
-      setError(messageOf(err));
-    } finally {
-      setBusy(false);
-    }
+    onPick(value.trim());
   }
-
   return (
     <div className="stack">
-      <p className="progress">{fmt(a.stepOf, { n: 1, total: 3 })}</p>
-      <h1>{a.whoseTitle}</h1>
-      {!adding && (
-        <div className="choices">
-          {people.map((p) => (
-            <button key={p.id} className="choice" onClick={() => onPick(p)}>
-              <strong>{p.name}</strong>
-            </button>
-          ))}
-          <button className="choice" onClick={() => setAdding(true)}>
-            <strong>{a.someoneNew}</strong>
-          </button>
-        </div>
-      )}
-      {adding && (
-        <Card>
-          <form className="stack" onSubmit={create}>
-            <Field label={a.newPersonLabel} help={a.newPersonHelp} required maxLength={60} autoFocus value={name} onChange={(e) => setName(e.target.value)} error={error} />
-            <Button type="submit" busy={busy}>{primary.common.continue}</Button>
-            {people.length > 0 && <Button type="button" variant="quiet" onClick={() => setAdding(false)}>{primary.common.back}</Button>}
-          </form>
-        </Card>
-      )}
+      <p className="progress">{fmt(a.stepOf, { n: 2, total: 3 })}</p>
+      <h1>{a.nameTitle}</h1>
+      <Card>
+        <form className="stack" onSubmit={next}>
+          <Field label={a.nameLabel} help={a.nameHelp} placeholder={primary.platform[platform]} maxLength={60} autoFocus value={value} onChange={(e) => setValue(e.target.value)} />
+          <Button type="submit">{primary.common.continue}</Button>
+          <Button type="button" variant="quiet" onClick={onBack}>{primary.common.back}</Button>
+        </form>
+      </Card>
     </div>
   );
 }
 
 /** A computer that sets itself up: one command, then a live check. The key is made on the computer and never seen here. */
-function ShowAgentSetup({ person, platform, navigate, onAnother }: { person: PersonSummary; platform: Platform; navigate: (to: string) => void; onAnother: () => void }) {
+function ShowAgentSetup({ name: chosen, platform, navigate, onAnother }: { name: string; platform: Platform; navigate: (to: string) => void; onAnother: () => void }) {
   const [added, setAdded] = useState<AddedAgentDevice | null>(null);
   const [error, setError] = useState<{ message: string; notReady: boolean } | null>(null);
   const started = useRef(false);
@@ -121,10 +87,10 @@ function ShowAgentSetup({ person, platform, navigate, onAnother }: { person: Per
     if (started.current) return;
     started.current = true;
     api
-      .addAgentDevice({ person_id: person.id, platform })
+      .addAgentDevice({ platform, name: chosen || undefined })
       .then(setAdded)
       .catch((e) => setError({ message: messageOf(e), notReady: e instanceof ApiError && e.status === 409 }));
-  }, [person.id, platform]);
+  }, [chosen, platform]);
 
   const id = added?.device.id;
   const { data: live } = useLoad(() => api.device(id as string), id ? 2000 : undefined);
@@ -177,7 +143,7 @@ function ShowAgentSetup({ person, platform, navigate, onAnother }: { person: Per
   );
 }
 
-function ShowCode({ person, platform, navigate, onAnother }: { person: PersonSummary; platform: Platform; navigate: (to: string) => void; onAnother: () => void }) {
+function ShowCode({ name: chosen, platform, navigate, onAnother }: { name: string; platform: Platform; navigate: (to: string) => void; onAnother: () => void }) {
   const [added, setAdded] = useState<AddedDevice | null>(null);
   const [error, setError] = useState<{ message: string; notReady: boolean } | null>(null);
   const started = useRef(false);
@@ -186,10 +152,10 @@ function ShowCode({ person, platform, navigate, onAnother }: { person: PersonSum
     if (started.current) return;
     started.current = true;
     api
-      .addDevice({ person_id: person.id, platform })
+      .addDevice({ platform, name: chosen || undefined })
       .then(setAdded)
       .catch((e) => setError({ message: messageOf(e), notReady: e instanceof ApiError && e.status === 409 }));
-  }, [person.id, platform]);
+  }, [chosen, platform]);
 
   const id = added?.device.id;
   const { data: live } = useLoad(() => api.device(id as string), id ? 2000 : undefined);

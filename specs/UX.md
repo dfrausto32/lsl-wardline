@@ -26,7 +26,7 @@ Someone who can install an app and scan a QR code but has never heard of a subne
 | Move to a new server | migrate |
 | Activity | audit log |
 | Security code / QR code | public key, private key, config |
-| Person | user, account (for the people who own devices) |
+| Person | (not used: there are no people, only machines) |
 
 A test scans the UI string file and fails if any "never say" term appears outside the Advanced namespace.
 
@@ -42,8 +42,8 @@ A test scans the UI string file and fails if any "never say" term appears outsid
 
 ### 2. Add a device
 1. "Add a device" button on Home (always visible, including a floating button on mobile).
-2. "Whose device is it?" Pick or create a person (just a name).
-3. "What kind of device?" Big buttons: iPhone, Android, Windows, Mac, Linux.
+2. "What kind of machine is it?" Big buttons: iPhone, Android, Windows, Mac, Linux.
+3. "What should it be called?" A name for the machine, such as "Office PC". Left empty it is named after its kind. There are no people in Wardline, only machines (decided by Dylan, 2026-10-29).
 4. Show the right instructions for that device, minimal:
    - iPhone/Android: "Install the WireGuard app" (store link), then "Scan this code" with a QR code on screen. Also a "Send me a link" option for a person's own phone.
    - Windows/Mac/Linux (phase 1): "Download this file" and "Open it in the WireGuard app", with the install link. Phase 2 replaces this with a one-click installer.
@@ -51,7 +51,7 @@ A test scans the UI string file and fails if any "never say" term appears outsid
 6. The code or file is shown once. Say so plainly: "This code works once. If it's lost, remove the device and add it again."
 
 ### 3. Home
-- A list of people and their devices as cards. Each card: name, device type icon, status chip (Connected / Not seen recently / Waiting), last seen in words ("2 minutes ago").
+- One list of machines. Each row: name, device type icon, status chip (Connected / Not seen recently / Waiting), last seen in words ("2 minutes ago").
 - A banner only when something needs attention, with one button. Phones that are simply asleep are never an alarm.
 - Footer: server status ("Your server is online").
 
@@ -75,7 +75,7 @@ Wizard, one step per screen:
 If the server address is a raw IP address, step 1 stops and explains that devices will need new codes, and offers to do it as part of the move.
 
 ### 8. Activity
-A plain-language timeline: "Maria added Sam's iPhone", "Sam's laptop was removed", "Server moved". Filter by person or device. Export as CSV.
+A plain-language timeline: "Maria added Sam's iPhone", "Sam's laptop was removed", "Server moved". Filter by machine. Export as CSV.
 
 ## Message style
 - Short sentences. Plain verbs. No exclamation marks, no jokes in errors.

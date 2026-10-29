@@ -9,15 +9,17 @@ test.beforeEach(async ({ page }) => {
   await signIn(page);
 });
 
-test("Home lists people and their devices with plain status (UX flow 3)", async ({ page }) => {
+test("Home lists machines with plain status (UX flow 3)", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Laney Office" })).toBeVisible();
 
-  const sam = page.getByRole("region", { name: "Sam" }).or(page.locator("section.person", { hasText: "Sam's iPhone" }));
-  await expect(sam).toContainText("Sam's iPhone");
-  await expect(sam).toContainText("Sam's Android phone");
-  await expect(sam).toContainText("Sam's Windows computer");
-  await expect(sam).toContainText("Sam's Mac");
+  // There are no people, only machines, in one list.
+  const machines = page.getByRole("region", { name: h.machinesHeading }).or(page.locator("section[aria-labelledby='machines-h']"));
+  await expect(machines).toContainText("Sam's iPhone");
+  await expect(machines).toContainText("Sam's Android phone");
+  await expect(machines).toContainText("Sam's Windows computer");
+  await expect(machines).toContainText("Sam's Mac");
+  await expect(page.getByText(h.peopleHeading)).toHaveCount(0);
 
   // Devices that were never switched on are Waiting; the two lab computers are Connected.
   const iphone = page.getByRole("link", { name: /Sam's iPhone/ });
@@ -40,7 +42,7 @@ test("device details show status, last seen and Advanced (UX flow 4)", async ({ 
   const d = primary.device;
   await expect(page.getByText(d.status, { exact: true })).toBeVisible();
   await expect(page.getByText(primary.status.waiting).first()).toBeVisible();
-  await expect(page.getByText(d.owner)).toBeVisible();
+  await expect(page.getByLabel(d.renameLabel)).toHaveValue("Sam's iPhone"); // a machine has a name, no owner
   await expect(page.getByRole("button", { name: d.removeAccess })).toBeVisible();
 
   // Times are relative with the exact time on hover.
@@ -67,14 +69,14 @@ test("Activity is a plain-language timeline with filter and export (UX flow 8)",
   await expect(list).toContainText("Sam's Mac 2 connected for the first time.");
   await review(page, "activity");
 
-  // Filter by a person.
-  await page.getByLabel(primary.activity.filterLabel).selectOption({ label: "Alex" });
+  // Filter by a machine.
+  await page.getByLabel(primary.activity.filterLabel).selectOption({ label: "Alex's Mac" });
   await expect(list.locator("li").filter({ hasText: "Sam's iPhone" })).toHaveCount(0);
   await expect(list).toContainText("Alex's Mac");
 
   // Export.
   const link = page.getByRole("link", { name: primary.activity.exportCsv });
-  await expect(link).toHaveAttribute("href", /\/api\/activity\.csv\?person_id=/);
+  await expect(link).toHaveAttribute("href", /\/api\/activity\.csv\?device_id=/);
   const [download] = await Promise.all([page.waitForEvent("download"), link.click()]);
   const csv = fs.readFileSync((await download.path())!, "utf8");
   expect(csv.split("\n")[0]).toBe("When,Who,What happened");

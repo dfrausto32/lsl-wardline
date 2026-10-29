@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/jchv/go-webview2"
 	"github.com/spf13/cobra"
@@ -20,6 +21,17 @@ import (
 
 	"lsl-wardline/internal/agent"
 )
+
+// trace notes how far the installer got in a small file, because a program with no console has nowhere else to say.
+// Look in the Temp folder (type %TEMP% in Explorer) for wardline-installer.log.
+func trace(format string, args ...any) {
+	f, err := os.OpenFile(filepath.Join(os.TempDir(), "wardline-installer.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "%s "+format+"\n", append([]any{time.Now().Format("15:04:05")}, args...)...)
+}
 
 func isAdmin() bool { return windows.GetCurrentProcessToken().IsElevated() }
 
@@ -44,13 +56,17 @@ func tell(text string) {
 
 // platformRoot is what double-clicking the program does: ask for permission, then open the installer window.
 func platformRoot(cmd *cobra.Command) error {
+	trace("started, administrator=%v", isAdmin())
 	if !isAdmin() {
 		if err := relaunchAsAdmin(); err != nil {
+			trace("asking for permission failed: %v", err)
 			tell("Wardline was not given permission, so nothing was changed.")
 		}
 		return nil
 	}
+	trace("opening the installer window")
 	if err := runInstallerWindow(cmd.Context()); err != nil {
+		trace("window failed: %v", err)
 		tell("Wardline could not open its installer window: " + err.Error())
 	}
 	return nil
@@ -87,12 +103,14 @@ func runInstallerWindow(ctx context.Context) error {
 	go http.Serve(ln, h)
 	url := fmt.Sprintf("http://127.0.0.1:%d/?k=%s", ln.Addr().(*net.TCPAddr).Port, key)
 
+	trace("listening on %s", ln.Addr())
 	w = webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:      filepath.Join(os.TempDir(), "Wardline-installer"),
 		AutoFocus:     true,
 		WindowOptions: webview2.WindowOptions{Title: "Wardline", Width: 640, Height: 760, IconId: 1, Center: true},
 	})
 	if w == nil {
+		trace("the built-in web view could not start, using the browser")
 		// The built-in web view is missing (an old Windows 10); use the web browser instead.
 		if err := exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start(); err != nil {
 			return err

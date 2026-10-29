@@ -18,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File scripts/release.ps1
 It writes `dist/release/`:
 
 - `wardline-linux-install.tar.gz`: the Linux program with its service files and install script. This is what a Linux machine needs.
-- `wardline-linux-amd64`, `wardline-linux-arm64`, `wardline-windows-amd64.exe`: the bare programs.
+- `wardline-linux-amd64`, `wardline-linux-arm64`, `wardline.exe` (Windows): the bare programs.
 - `SHA256SUMS.txt`: checksums, so a copy can be checked.
 
 Copy the tarball to the machine (for example with `scp`) and unpack it into a folder:
@@ -68,10 +68,10 @@ In the web app choose **Add a device**, pick whose it is, then **Windows** or **
 sudo sh install-linux.sh agent https://wardline.example.com <one-time code>
 ```
 
-**Windows:** first install [WireGuard for Windows](https://www.wireguard.com/install/) (Wardline uses it to run the connection). Copy `wardline-windows-amd64.exe` to the computer, open PowerShell **as administrator** in that folder and run the command Wardline shows, with the program's name in front:
+**Windows:** first install [WireGuard for Windows](https://www.wireguard.com/install/) (Wardline uses it to run the connection). Download `wardline.exe` (the Add a device page links to it), open PowerShell **as administrator** in that folder and run the command Wardline shows:
 
 ```powershell
-.\wardline-windows-amd64.exe agent install --control-url https://wardline.example.com --token <one-time code>
+.\wardline.exe agent install --control-url https://wardline.example.com --token <one-time code>
 ```
 
 It copies the program to `C:\Program Files\Wardline`, keeps its keys in `C:\ProgramData\Wardline` (readable only by the system and administrators), creates a "Wardline" service that starts with Windows and restarts if it stops, and starts it. `wardline.exe agent uninstall` takes it off the computer again.

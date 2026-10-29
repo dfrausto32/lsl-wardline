@@ -32,6 +32,14 @@ func SentenceDeviceRefreshFailed(device string) string {
 	return fmt.Sprintf("%s could not refresh its security and kept its old one.", device)
 }
 
+func SentenceNameKept(actor, name string) string {
+	return fmt.Sprintf("%s asked Wardline to keep %s pointed at this computer.", actor, name)
+}
+
+func SentenceNameRemoved(actor, name string) string {
+	return fmt.Sprintf("%s stopped Wardline keeping %s pointed at this computer.", actor, name)
+}
+
 func SentenceDeviceSetUp(device string) string {
 	return fmt.Sprintf("%s was set up and is ready to connect.", device)
 }

@@ -178,6 +178,12 @@ func (g *Gateway) apply(ctx context.Context, st DesiredState) (wg.Diff, error) {
 		return d, err
 	}
 	g.devices = devices
+	if f, ok := g.cfg.Backend.(wg.Forwarder); ok {
+		// Always set explicitly, so a host that already relays (such as one running containers) cannot leave devices reaching each other when the setting is off.
+		if err := f.SetForwarding(ctx, g.cfg.Iface, st.DevicesReachEachOther); err != nil {
+			g.cfg.Log.Error("could not change whether devices can reach each other", "error", err.Error())
+		}
+	}
 	if st.Version != g.id.LastVersion {
 		g.id.LastVersion = st.Version
 		if err := g.saveIdentity(); err != nil {

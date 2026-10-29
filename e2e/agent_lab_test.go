@@ -71,6 +71,33 @@ func agentSteps(t *testing.T, l *lab, serverTunnelIP string) {
 	}
 	t.Log("agent-1 refreshed its key and kept working")
 
+	// Devices are isolated from each other until the person says otherwise. agent-1 tries to reach agent-2
+	// by its private address; the setting turns that on and off, and the real server relays (or stops relaying).
+	var other struct {
+		Advanced struct {
+			Address string `json:"address"`
+		} `json:"advanced"`
+	}
+	l.must("GET", "/api/devices/"+devs[1].id, nil, &other, 200)
+	l.writeFile("agent-1.peer", other.Advanced.Address+"\n")
+	time.Sleep(8 * time.Second)
+	if ts, ok := l.lastFile("agent-1.peerok"); ok && time.Since(ts) < 6*time.Second {
+		t.Fatal("devices reached each other although the setting is off")
+	}
+	t.Log("devices are isolated by default")
+	l.must("PUT", "/api/network/devices-reach-each-other", map[string]bool{"enabled": true}, nil, 200)
+	l.eventually("agent-1 to reach agent-2 once the setting is on", 40*time.Second, func() bool {
+		ts, ok := l.lastFile("agent-1.peerok")
+		return ok && time.Since(ts) < 4*time.Second
+	})
+	t.Log("with the setting on, one device reached another through the server")
+	l.must("PUT", "/api/network/devices-reach-each-other", map[string]bool{"enabled": false}, nil, 200)
+	l.eventually("the devices to be isolated again", 40*time.Second, func() bool {
+		ts, ok := l.lastFile("agent-1.peerok")
+		return ok && time.Since(ts) >= 5*time.Second
+	})
+	t.Log("turning it off isolated them again")
+
 	// Removing access: traffic stops, and the computer deletes its tunnel and keys by itself.
 	removedAt := time.Now()
 	l.must("DELETE", "/api/devices/"+devs[1].id, nil, nil, 200)

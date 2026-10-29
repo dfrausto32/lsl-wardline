@@ -99,8 +99,11 @@ func (l *lab) writeFile(name, content string) {
 }
 
 // lastOK returns when the device last got an answer from the server through its tunnel.
-func (l *lab) lastOK(dev string) (time.Time, bool) {
-	b, err := os.ReadFile(filepath.Join(l.dir, dev+".lastok"))
+func (l *lab) lastOK(dev string) (time.Time, bool) { return l.lastFile(dev + ".lastok") }
+
+// lastFile reads a time recorded by a lab computer.
+func (l *lab) lastFile(name string) (time.Time, bool) {
+	b, err := os.ReadFile(filepath.Join(l.dir, name))
 	if err != nil {
 		return time.Time{}, false
 	}

@@ -32,6 +32,8 @@ type DesiredState struct {
 	Address    string        `json:"address"` // the server's own address with the network prefix, e.g. 10.77.5.1/24
 	ListenPort int           `json:"listen_port"`
 	Peers      []DesiredPeer `json:"peers"`
+	// DevicesReachEachOther is the network setting: when true the server relays traffic from one device to another.
+	DevicesReachEachOther bool `json:"devices_reach_each_other"`
 }
 
 // Signed carries the exact bytes that were signed.

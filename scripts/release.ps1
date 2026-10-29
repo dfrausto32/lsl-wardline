@@ -39,9 +39,11 @@ Remove-Item -Recurse -Force $bundle
 # wardline.exe carries the Wintun driver library; its licence goes with every release.
 Copy-Item internal/wintun/LICENSE.txt "$out/wintun-LICENSE.txt"
 
-Get-ChildItem $out -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" } | ForEach-Object {
+# Linux checks this file with sha256sum, so it must end its lines with LF, not Windows' CRLF.
+$sums = Get-ChildItem $out -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" } | ForEach-Object {
     "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
-} | Set-Content "$out/SHA256SUMS.txt" -Encoding ascii
+}
+[System.IO.File]::WriteAllText((Join-Path (Resolve-Path $out) "SHA256SUMS.txt"), (($sums -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
 
 Get-ChildItem $out | Format-Table Name, Length
 Write-Host "Version: $Version"

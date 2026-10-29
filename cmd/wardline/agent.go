@@ -15,12 +15,17 @@ import (
 	wlog "lsl-wardline/internal/log"
 )
 
+// programData is the Windows folder for data that belongs to the whole computer.
+func programData() string {
+	if pd := os.Getenv("ProgramData"); pd != "" {
+		return pd
+	}
+	return `C:\ProgramData`
+}
+
 func defaultAgentDir() string {
 	if runtime.GOOS == "windows" {
-		if pd := os.Getenv("ProgramData"); pd != "" {
-			return filepath.Join(pd, "Wardline")
-		}
-		return `C:\ProgramData\Wardline`
+		return filepath.Join(programData(), "Wardline")
 	}
 	return "/var/lib/wardline-agent"
 }
@@ -57,7 +62,7 @@ func agentCmd() *cobra.Command {
 				return err
 			}
 			// Started by the Windows service manager, it runs under that instead.
-			if handled, serr := runAsService(a.Run); handled {
+			if handled, serr := runAsService(agentServiceName, a.Run); handled {
 				return serr
 			}
 			err = a.Run(cmd.Context())

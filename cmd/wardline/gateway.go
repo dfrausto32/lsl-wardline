@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/spf13/cobra"
@@ -15,28 +16,54 @@ import (
 	"lsl-wardline/internal/wintun"
 )
 
+// gatewayOpts are the flags the server role commands share.
+type gatewayOpts struct {
+	controlURL, token, stateDir, iface, name, backend, level string
+}
+
+// defaultServerDir is where the server keeps its identity.
+func defaultServerDir() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(programData(), "Wardline-server")
+	}
+	return "/var/lib/wardline"
+}
+
+// buildGateway makes the server role from its flags.
+func buildGateway(o *gatewayOpts) (*gateway.Gateway, error) {
+	log := wlog.New(os.Stderr, o.level)
+	if o.controlURL == "" {
+		return nil, errors.New("the control plane address is missing (--control-url or WARDLINE_CONTROL_URL)")
+	}
+	b, kind, err := chooseBackend(o.backend)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("using WireGuard backend", "backend", kind)
+	name := o.name
+	if name == "" {
+		name, _ = os.Hostname()
+	}
+	return gateway.New(gateway.Config{
+		StateDir: o.stateDir, Iface: o.iface, Name: name, EnrollToken: o.token, ControlURL: o.controlURL,
+		Control: gateway.NewHTTPControl(o.controlURL, &http.Client{}), Backend: b, Log: log,
+	}), nil
+}
+
 func gatewayCmd() *cobra.Command {
-	var controlURL, token, stateDir, iface, name, backend, level string
+	o := &gatewayOpts{}
 	c := &cobra.Command{
 		Use:   "gateway",
 		Short: "Run the server role: accept devices and report who is connected",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log := wlog.New(os.Stderr, level)
-			if controlURL == "" {
-				return errors.New("the control plane address is missing (--control-url or WARDLINE_CONTROL_URL)")
-			}
-			b, kind, err := chooseBackend(backend)
+			g, err := buildGateway(o)
 			if err != nil {
 				return err
 			}
-			log.Info("using WireGuard backend", "backend", kind)
-			if name == "" {
-				name, _ = os.Hostname()
+			// Started by the Windows service manager, it runs under that instead.
+			if handled, serr := runAsService(gatewayServiceName, g.Run); handled {
+				return serr
 			}
-			g := gateway.New(gateway.Config{
-				StateDir: stateDir, Iface: iface, Name: name, EnrollToken: token, ControlURL: controlURL,
-				Control: gateway.NewHTTPControl(controlURL, &http.Client{}), Backend: b, Log: log,
-			})
 			err = g.Run(cmd.Context())
 			if errors.Is(err, cmd.Context().Err()) {
 				return nil
@@ -44,14 +71,15 @@ func gatewayCmd() *cobra.Command {
 			return err
 		},
 	}
-	f := c.Flags()
-	f.StringVar(&controlURL, "control-url", envOr("WARDLINE_CONTROL_URL", ""), "address of the control plane")
-	f.StringVar(&token, "token", envOr("WARDLINE_ENROLL_TOKEN", ""), "one-time install code (first start only)")
-	f.StringVar(&stateDir, "state-dir", envOr("WARDLINE_STATE_DIR", "/var/lib/wardline"), "folder where this server keeps its identity")
-	f.StringVar(&iface, "interface", envOr("WARDLINE_INTERFACE", "wardline0"), "name of the network interface to create")
-	f.StringVar(&name, "name", envOr("WARDLINE_SERVER_NAME", ""), "name shown for this server")
-	f.StringVar(&backend, "backend", envOr("WARDLINE_BACKEND", "auto"), "auto, kernel or userspace")
-	f.StringVar(&level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
+	f := c.PersistentFlags() // subcommands such as install share these
+	f.StringVar(&o.controlURL, "control-url", envOr("WARDLINE_CONTROL_URL", ""), "address of the control plane")
+	f.StringVar(&o.token, "token", envOr("WARDLINE_ENROLL_TOKEN", ""), "one-time install code (first start only)")
+	f.StringVar(&o.stateDir, "state-dir", envOr("WARDLINE_STATE_DIR", defaultServerDir()), "folder where this server keeps its identity")
+	f.StringVar(&o.iface, "interface", envOr("WARDLINE_INTERFACE", "wardline0"), "name of the network interface to create")
+	f.StringVar(&o.name, "name", envOr("WARDLINE_SERVER_NAME", ""), "name shown for this server")
+	f.StringVar(&o.backend, "backend", envOr("WARDLINE_BACKEND", "auto"), "auto, kernel or userspace")
+	f.StringVar(&o.level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
+	platformGatewayCommands(c, o)
 	return c
 }
 

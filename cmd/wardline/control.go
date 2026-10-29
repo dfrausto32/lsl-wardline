@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -20,61 +21,84 @@ import (
 	"lsl-wardline/internal/webui"
 )
 
+// controlOpts are the flags the control plane commands share.
+type controlOpts struct {
+	listen, data, publicURL, level string
+}
+
+// defaultControlDir is where the control plane keeps its database and secret key.
+func defaultControlDir() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(programData(), "Wardline-control")
+	}
+	return "/var/lib/wardline"
+}
+
 func controlCmd() *cobra.Command {
-	var listen, data, publicURL, level string
+	o := &controlOpts{}
 	c := &cobra.Command{
 		Use:   "control",
 		Short: "Run the control plane: the web app, the API and the database",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log := wlog.New(os.Stderr, level)
-			if err := os.MkdirAll(data, 0o700); err != nil {
+			// Started by the Windows service manager, it runs under that instead.
+			if handled, err := runAsService(controlServiceName, func(ctx context.Context) error { return serveControl(ctx, o) }); handled {
 				return err
 			}
-			st, err := store.Open(filepath.Join(data, "wardline.db"))
-			if err != nil {
-				return err
-			}
-			defer st.Close()
-			key, err := auth.LoadOrCreateKey(filepath.Join(data, "secret.key"))
-			if err != nil {
-				return err
-			}
-			box, err := auth.NewSecretBox(key)
-			if err != nil {
-				return err
-			}
-			sk, err := api.EnsureSigningKey(cmd.Context(), st, box)
-			if err != nil {
-				return err
-			}
-			if publicURL == "" {
-				publicURL = "http://localhost" + listen
-				log.Warn("no public URL set; servers will be told to reach this control plane at " + publicURL)
-			}
-			srv := api.New(api.Deps{
-				Store: st, Audit: audit.New(st.DB()), Box: box, Log: log, SigningKey: sk, PublicURL: publicURL,
-				SecureCookies: strings.HasPrefix(publicURL, "https://"), Static: webui.Handler(),
-			})
-			hs := &http.Server{Addr: listen, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}
-			go func() {
-				<-cmd.Context().Done()
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				hs.Shutdown(ctx)
-			}()
-			log.Info("control plane listening", "address", listen, "public_url", publicURL)
-			if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				return err
-			}
-			return nil
+			return serveControl(cmd.Context(), o)
 		},
 	}
-	f := c.Flags()
-	f.StringVar(&listen, "listen", envOr("WARDLINE_LISTEN", ":8080"), "address to listen on")
-	f.StringVar(&data, "data", envOr("WARDLINE_DATA", "/var/lib/wardline"), "folder for the database and secret key")
-	f.StringVar(&publicURL, "public-url", envOr("WARDLINE_PUBLIC_URL", ""), "the address servers use to reach this control plane")
-	f.StringVar(&level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
+	f := c.PersistentFlags() // subcommands such as install share these
+	f.StringVar(&o.listen, "listen", envOr("WARDLINE_LISTEN", ":8080"), "address to listen on")
+	f.StringVar(&o.data, "data", envOr("WARDLINE_DATA", defaultControlDir()), "folder for the database and secret key")
+	f.StringVar(&o.publicURL, "public-url", envOr("WARDLINE_PUBLIC_URL", ""), "the address servers use to reach this control plane")
+	f.StringVar(&o.level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
+	platformControlCommands(c, o)
 	return c
+}
+
+func serveControl(ctx context.Context, o *controlOpts) error {
+	listen, data, publicURL := o.listen, o.data, o.publicURL
+	log := wlog.New(os.Stderr, o.level)
+	if err := os.MkdirAll(data, 0o700); err != nil {
+		return err
+	}
+	st, err := store.Open(filepath.Join(data, "wardline.db"))
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	key, err := auth.LoadOrCreateKey(filepath.Join(data, "secret.key"))
+	if err != nil {
+		return err
+	}
+	box, err := auth.NewSecretBox(key)
+	if err != nil {
+		return err
+	}
+	sk, err := api.EnsureSigningKey(ctx, st, box)
+	if err != nil {
+		return err
+	}
+	if publicURL == "" {
+		publicURL = "http://localhost" + listen
+		log.Warn("no public URL set; servers will be told to reach this control plane at " + publicURL)
+	}
+	srv := api.New(api.Deps{
+		Store: st, Audit: audit.New(st.DB()), Box: box, Log: log, SigningKey: sk, PublicURL: publicURL,
+		SecureCookies: strings.HasPrefix(publicURL, "https://"), Static: webui.Handler(),
+	})
+	hs := &http.Server{Addr: listen, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}
+	go func() {
+		<-ctx.Done()
+		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		hs.Shutdown(sctx)
+	}()
+	log.Info("control plane listening", "address", listen, "public_url", publicURL)
+	if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
 
 func auditCmd() *cobra.Command {

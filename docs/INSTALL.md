@@ -58,6 +58,30 @@ The server needs UDP port 51820 reachable from the internet. If your host or rou
 
 Your devices connect using an address you choose in the setup. If you own a domain, add a name such as `network.example.com` with an A record pointing at this machine's public IP. Moving to a new server later then means changing that one record.
 
+### Using a Windows computer as the server
+
+Everything is one file, `wardline.exe`, and nothing else needs installing. Download it from the [latest release](https://github.com/dfrausto32/lsl-wardline/releases/latest), then open PowerShell **as administrator** in the folder that holds it.
+
+1. Start the web app. It finds this computer's address by itself and opens its port for your home or work network only:
+
+   ```powershell
+   .\wardline.exe control install
+   ```
+
+   It prints the address other computers use, for example `http://192.168.1.50:8080`. Add `--public-url` to use a different one (for example a name behind HTTPS).
+2. On this computer, open `http://localhost:8080` and follow the setup screens. Choose the **Windows service** tab when it shows the server command, and run that command in the same PowerShell window:
+
+   ```powershell
+   .\wardline.exe gateway install --control-url http://192.168.1.50:8080 --token <one-time code>
+   ```
+
+   It registers this computer as the server, opens UDP port 51820, and starts it. The setup page updates by itself.
+3. Both parts are Windows services that start with Windows and restart if they stop. The program lives in `C:\Program Files\Wardline`; data is in `C:\ProgramData\Wardline-control` (database and secret key: **back it up**) and `C:\ProgramData\Wardline-server`, readable only by the system and administrators.
+
+To take them off again: `.\wardline.exe gateway uninstall` and `.\wardline.exe control uninstall`. Both keep their data folders.
+
+If the other computers are on another network, the server address you give in setup must be reachable from the internet, and your router must forward UDP port 51820 (and TCP 8080, or your HTTPS address, for the web app) to this computer.
+
 ## 4. Add computers
 
 In the web app choose **Add a device**, pick whose it is, then **Windows** or **Linux**. Wardline shows one command with a one-time code. The computer makes its own security key and sends only the public half, so Wardline never sees the secret one. It then keeps itself connected, replaces its key every 90 days without anyone doing anything, follows the server if its address changes, and deletes its connection and keys by itself if you remove it in Wardline.

@@ -238,11 +238,13 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request, _ string) {
 	}
 	prow.Close()
 
+	machines := []map[string]any{}
 	attention := []map[string]any{}
 	now := s.now()
 	for _, d := range ds {
 		i := index[d.PersonID]
 		people[i]["devices"] = append(people[i]["devices"].([]map[string]any), s.view(d))
+		machines = append(machines, s.view(d))
 		if d.Seen != nil && now.Sub(*d.Seen) > unseenAttention {
 			attention = append(attention, map[string]any{"kind": "device_unseen_30_days", "device_id": d.ID, "device_name": d.Name})
 		}
@@ -272,6 +274,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request, _ string) {
 		"network":   map[string]any{"name": n.Name, "server_address": n.ServerAddress, "server_address_kind": n.Kind},
 		"server":    server,
 		"people":    people,
+		"devices":   machines,
 		"attention": attention,
 	})
 }
@@ -306,14 +309,14 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 	}
 	defer tx.Rollback()
 
-	var personName string
-	if err := tx.QueryRowContext(ctx, `SELECT display_name FROM people WHERE id=?`, in.PersonID).Scan(&personName); err != nil {
-		s.fail(w, http.StatusBadRequest, "Choose whose device this is.")
-		return
-	}
 	n, err := s.network(ctx, tx)
 	if err != nil {
 		s.serverError(w, r, err)
+		return
+	}
+	personID, personName, perr := s.personFor(ctx, tx, in.PersonID, n.ID)
+	if perr != nil {
+		s.fail(w, http.StatusBadRequest, perr.Error())
 		return
 	}
 	if n.ServerAddress == "" {
@@ -329,7 +332,7 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		name = fmt.Sprintf("%s's %s", personName, label)
+		name = machineName(personName, label)
 	}
 	base, nth := name, 1
 	for {
@@ -364,7 +367,7 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 	ts := now.Format(time.RFC3339)
 	due := now.Add(manualRefreshAge).Format(time.RFC3339)
 	if _, err := tx.ExecContext(ctx, `INSERT INTO devices(id,network_id,person_id,name,platform,kind,tunnel_ip,status,added_at,refresh_due_at) VALUES(?,?,?,?,?,?,?,?,?,?)`,
-		id, n.ID, in.PersonID, name, in.Platform, "manual", "pending-"+id, "waiting", ts, due); err != nil {
+		id, n.ID, personID, name, in.Platform, "manual", "pending-"+id, "waiting", ts, due); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -403,7 +406,7 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 		return
 	}
 	if err := s.d.Audit.Append(ctx, tx, audit.Event{Actor: email, Action: "device.added", SubjectType: "device", SubjectID: id,
-		PlainText: audit.SentenceDeviceAdded(email, name), Details: map[string]any{"person_id": in.PersonID, "platform": in.Platform, "public_key": pub}}); err != nil {
+		PlainText: audit.SentenceDeviceAdded(email, name), Details: map[string]any{"person_id": personID, "platform": in.Platform, "public_key": pub}}); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

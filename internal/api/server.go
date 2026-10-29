@@ -146,6 +146,7 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /api/devices", s.admin(s.handleDeviceCreate))
 	m.HandleFunc("GET /api/devices/{id}", s.admin(s.handleDevice))
 	m.HandleFunc("DELETE /api/devices/{id}", s.admin(s.handleDeviceRemove))
+	m.HandleFunc("PATCH /api/devices/{id}", s.admin(s.handleDeviceRename))
 	m.HandleFunc("GET /api/activity", s.admin(s.handleActivity))
 	m.HandleFunc("GET /api/activity.csv", s.admin(s.handleActivityCSV))
 	// Servers

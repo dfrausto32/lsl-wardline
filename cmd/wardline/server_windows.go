@@ -27,11 +27,19 @@ func installControlService(ctx context.Context, out io.Writer, o *controlOpts) (
 			return "", err
 		}
 	}
+	args := controlServiceArgs(o.listen, o.data, url)
+	lock := []string{o.data}
+	rules := controlFirewall(o.listen)
+	if o.withServer { // this computer is also the server, so it needs its own folder and its own port open
+		args = append(args, localServerArgs(o.serverDir)...)
+		lock = append(lock, o.serverDir)
+		rules = append(rules, gatewayFirewall(gatewayPort)...)
+	}
 	err := installWinService(ctx, out, winSvc{
 		name: controlServiceName, display: "Wardline web app", desc: "The Wardline web app and database for your private network.",
-		args:     controlServiceArgs(o.listen, o.data, url),
-		lockDirs: []string{o.data},
-		firewall: controlFirewall(o.listen),
+		args:     args,
+		lockDirs: lock,
+		firewall: rules,
 		done: func() string {
 			return fmt.Sprintf("The Wardline web app is running.\nOn this computer, open http://localhost%s to set up your network.\nOther computers on your network use %s", o.listen, url)
 		},
@@ -82,7 +90,7 @@ func platformControlCommands(c *cobra.Command, o *controlOpts) {
 		Use:   "uninstall",
 		Short: "Stop the Wardline web app service (run as administrator). The database is kept.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := uninstallWinService(controlServiceName, webRuleName); err != nil {
+			if err := uninstallWinService(controlServiceName, webRuleName, serverRuleName); err != nil {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "The Wardline web app was stopped and removed. Your data is still in %s.\n", o.data)

@@ -14,6 +14,7 @@ import (
 var version = "dev"
 
 func main() {
+	prepareConsole()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := newRoot().ExecuteContext(ctx); err != nil {

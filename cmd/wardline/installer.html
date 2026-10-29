@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wardline</title>
+<style>
+  :root { --bg:#f5f0e1; --card:#fffdf6; --text:#141414; --muted:#5b564b; --red:#e50f0f; --red-dark:#b30b0b; --line:#d8d0bb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141414; --card:#1f1d1a; --text:#f5f0e1; --muted:#b9b2a0; --line:#3a362f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:560px; margin:0 auto; padding:28px 20px 40px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:19px; margin:0 0 6px; }
+  p { margin:0 0 12px; }
+  .sub { color:var(--muted); margin-bottom:22px; }
+  .choice { display:block; width:100%; text-align:left; background:var(--card); color:var(--text); border:2px solid var(--line); border-radius:14px; padding:16px 18px; margin:0 0 12px; font:inherit; cursor:pointer; min-height:44px; }
+  .choice:hover, .choice:focus-visible { border-color:var(--red); outline:none; }
+  .choice strong { display:block; font-size:18px; }
+  .choice span { color:var(--muted); }
+  button.go { background:var(--red); color:#fff; border:2px solid var(--red); border-radius:12px; padding:10px 20px; font:inherit; font-weight:700; cursor:pointer; min-height:44px; }
+  button.go:hover { background:var(--red-dark); border-color:var(--red-dark); }
+  button.quiet { background:transparent; color:var(--text); border:2px solid var(--line); border-radius:12px; padding:10px 20px; font:inherit; font-weight:600; cursor:pointer; min-height:44px; margin-left:8px; }
+  textarea { width:100%; min-height:96px; font:14px/1.4 Consolas, monospace; border:2px solid var(--line); border-radius:10px; padding:10px; background:var(--card); color:var(--text); margin:0 0 12px; }
+  .box { background:var(--card); border:2px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; white-space:pre-wrap; }
+  .error { border-color:var(--red); }
+  .spin { width:22px; height:22px; border:3px solid var(--line); border-top-color:var(--red); border-radius:50%; animation:s 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:10px; }
+  @keyframes s { to { transform:rotate(360deg); } }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Wardline</h1>
+  <p class="sub">Private networks that anyone can set up.</p>
+
+  <section id="home">
+    <h2>What would you like to do?</h2>
+    <button class="choice" id="pick-server"><strong>Make this computer my server</strong><span>Sets up Wardline here and lets your other devices connect to this computer.</span></button>
+    <button class="choice" id="pick-computer"><strong>Add this computer to my network</strong><span>Joins a network you already set up somewhere else.</span></button>
+    <button class="choice" id="pick-remove"><strong>Remove Wardline from this computer</strong><span>Stops Wardline and takes this computer off the network.</span></button>
+  </section>
+
+  <section id="computer" hidden>
+    <h2>Add this computer</h2>
+    <p>In the Wardline web app choose <b>Add a device</b>, then <b>Windows</b>, and copy the command it shows. Paste it here.</p>
+    <textarea id="command" spellcheck="false" aria-label="Command from Wardline"></textarea>
+    <button class="go" id="do-computer">Add this computer</button><button class="quiet" data-back>Back</button>
+  </section>
+
+  <section id="remove" hidden>
+    <h2>Remove Wardline?</h2>
+    <p>This stops Wardline on this computer and deletes its connection and keys. If this computer was your server, its data is kept.</p>
+    <button class="go" id="do-remove">Yes, remove it</button><button class="quiet" data-back>No, go back</button>
+  </section>
+
+  <section id="working" hidden aria-live="polite">
+    <p><span class="spin"></span><span id="working-text">Working…</span></p>
+  </section>
+
+  <section id="result" hidden>
+    <div class="box" id="result-box" role="status"></div>
+    <button class="go" id="next" hidden>Continue</button><button class="quiet" id="again" hidden>Back</button><button class="quiet" id="close">Close</button>
+  </section>
+</main>
+<script>
+(function () {
+  var key = new URLSearchParams(location.search).get("k") || "";
+  var $ = function (id) { return document.getElementById(id); };
+  var views = ["home", "computer", "remove", "working", "result"];
+  function show(name) { views.forEach(function (v) { $(v).hidden = v !== name; }); }
+  function call(path, body) {
+    return fetch(path, { method: "POST", headers: { "X-Wardline-Key": key, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, message: "Could not reach the installer. Close this window and open Wardline again." }; });
+  }
+  function done(out, doneText) {
+    $("result-box").textContent = out.ok ? (out.message ? out.message + "\n\n" : "") + doneText : out.message;
+    $("result-box").className = "box" + (out.ok ? "" : " error");
+    $("next").hidden = !(out.ok && out.open);
+    $("again").hidden = out.ok;
+    $("next").onclick = function () { location.href = out.open; };
+    show("result");
+  }
+  function work(text, path, body, doneText) {
+    $("working-text").textContent = text;
+    show("working");
+    call(path, body).then(function (out) { done(out, doneText); });
+  }
+  $("pick-server").onclick = function () {
+    work("Setting up Wardline on this computer. This takes a moment…", "/api/server", {}, "Next you will create your network. The Wardline setup opens in this window.");
+  };
+  $("pick-computer").onclick = function () { show("computer"); $("command").focus(); };
+  $("pick-remove").onclick = function () { show("remove"); };
+  $("do-computer").onclick = function () {
+    work("Adding this computer…", "/api/computer", { command: $("command").value }, "This computer will show as Connected in Wardline within a minute.");
+  };
+  $("do-remove").onclick = function () { work("Removing Wardline…", "/api/remove", {}, "Wardline was removed from this computer."); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function (b) { b.onclick = function () { show("home"); }; });
+  $("again").onclick = function () { show("home"); };
+  $("close").onclick = function () { call("/api/quit").then(function () { window.close(); }); };
+})();
+</script>
+</body>
+</html>

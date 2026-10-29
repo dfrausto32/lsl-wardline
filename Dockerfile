@@ -14,7 +14,8 @@ COPY --from=web /src/internal/webui/dist/ ./internal/webui/dist/
 ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION=dev
-RUN GOOS=$GOOS GOARCH=$GOARCH go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o /out/wardline ./cmd/wardline
+# The Windows program is a Windows app (no black console window when double-clicked); it attaches to a terminal when started from one.
+RUN GOOS=$GOOS GOARCH=$GOARCH go build -trimpath -ldflags "-s -w -X main.version=$VERSION $([ "$GOOS" = windows ] && echo -H=windowsgui)" -o /out/wardline ./cmd/wardline
 
 # Just the program, for installing without Docker: docker build --target binary --output dist .
 FROM scratch AS binary

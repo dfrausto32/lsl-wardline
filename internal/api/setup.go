@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -220,7 +221,7 @@ func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request, _ string)
 		return
 	}
 	s.json(w, http.StatusOK, map[string]any{"id": n.ID, "name": n.Name, "server_address": n.ServerAddress,
-		"server_address_kind": n.Kind, "advanced": map[string]string{"address_range": n.Range}})
+		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "advanced": map[string]string{"address_range": n.Range}})
 }
 
 var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$`)
@@ -284,3 +285,19 @@ func (s *Server) handleServerAddress(w http.ResponseWriter, r *http.Request, adm
 	}
 	s.json(w, http.StatusOK, map[string]string{"server_address": in.Address, "server_address_kind": kind})
 }
+
+// suggestedAddress is the name or IP the web app itself is reached at, when that is something other
+// devices could use too. It saves a non-technical person from looking up this computer's address.
+func (s *Server) suggestedAddress() string {
+	u, err := url.Parse(s.d.PublicURL)
+	if err != nil {
+		return ""
+	}
+	host := u.Hostname()
+	if host == "" || host == "localhost" || addressProblem(host) {
+		return ""
+	}
+	return host
+}
+
+func addressProblem(host string) bool { _, err := classifyAddress(host); return err != nil }

@@ -44,4 +44,31 @@ writeFileSync("public/icon-maskable-512.png", await sharp({ create: { width: 512
 const svg = readFileSync("public/favicon.svg");
 writeFileSync("public/favicon-32.png", await sharp(svg, { density: 512 }).resize(32, 32).png().toBuffer());
 writeFileSync("public/favicon-48.png", await sharp(svg, { density: 512 }).resize(48, 48).png().toBuffer());
+
+// The Windows program icon (cmd/wardline/wardline.ico): the full logo when large, the shield when tiny.
+// Turn it into the resource the linker uses with: go run github.com/akavel/rsrc@v0.10.2 -ico cmd/wardline/wardline.ico -arch amd64 -o cmd/wardline/rsrc_windows_amd64.syso
+const sizes = [
+  [16, await sharp(svg, { density: 512 }).resize(16, 16).png().toBuffer()],
+  [32, await sharp(svg, { density: 512 }).resize(32, 32).png().toBuffer()],
+  [48, await sharp(svg, { density: 512 }).resize(48, 48).png().toBuffer()],
+  [64, await full(64)],
+  [128, await full(128)],
+  [256, await full(256)],
+];
+const head = Buffer.alloc(6);
+head.writeUInt16LE(1, 2); // type: icon
+head.writeUInt16LE(sizes.length, 4);
+let offset = 6 + 16 * sizes.length;
+const entries = sizes.map(([n, png]) => {
+  const e = Buffer.alloc(16);
+  e[0] = n === 256 ? 0 : n; // 0 means 256
+  e[1] = n === 256 ? 0 : n;
+  e.writeUInt16LE(1, 4); // planes
+  e.writeUInt16LE(32, 6); // bits per pixel
+  e.writeUInt32LE(png.length, 8);
+  e.writeUInt32LE(offset, 12);
+  offset += png.length;
+  return e;
+});
+writeFileSync("../cmd/wardline/wardline.ico", Buffer.concat([head, ...entries, ...sizes.map(([, p]) => p)]));
 console.log("icons written");

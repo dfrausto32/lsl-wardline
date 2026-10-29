@@ -3,6 +3,7 @@ module lsl-wardline
 go 1.26.0
 
 require (
+	github.com/jchv/go-webview2 v0.0.0-20260205173254-56598839c808
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/spf13/cobra v1.10.2
 	github.com/vishvananda/netlink v1.3.1
@@ -18,6 +19,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1 // indirect
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mdlayher/genetlink v1.3.2 // indirect

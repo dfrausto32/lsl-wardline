@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -23,7 +24,8 @@ import (
 
 // controlOpts are the flags the control plane commands share.
 type controlOpts struct {
-	listen, data, publicURL, level string
+	listen, data, publicURL, level, serverDir string
+	withServer                                bool
 }
 
 // defaultControlDir is where the control plane keeps its database and secret key.
@@ -51,6 +53,8 @@ func controlCmd() *cobra.Command {
 	f.StringVar(&o.listen, "listen", envOr("WARDLINE_LISTEN", ":8080"), "address to listen on")
 	f.StringVar(&o.data, "data", envOr("WARDLINE_DATA", defaultControlDir()), "folder for the database and secret key")
 	f.StringVar(&o.publicURL, "public-url", envOr("WARDLINE_PUBLIC_URL", ""), "the address servers use to reach this control plane")
+	f.BoolVar(&o.withServer, "with-server", false, "this computer is also the server: register it automatically when the web app creates the server")
+	f.StringVar(&o.serverDir, "server-dir", envOr("WARDLINE_SERVER_DIR", defaultServerDir()), "with --with-server: folder where the server keeps its identity")
 	f.StringVar(&o.level, "log-level", envOr("WARDLINE_LOG_LEVEL", "info"), "debug, info, warn or error")
 	platformControlCommands(c, o)
 	return c
@@ -83,10 +87,17 @@ func serveControl(ctx context.Context, o *controlOpts) error {
 		publicURL = "http://localhost" + listen
 		log.Warn("no public URL set; servers will be told to reach this control plane at " + publicURL)
 	}
-	srv := api.New(api.Deps{
+	deps := api.Deps{
 		Store: st, Audit: audit.New(st.DB()), Box: box, Log: log, SigningKey: sk, PublicURL: publicURL,
 		SecureCookies: strings.HasPrefix(publicURL, "https://"), Static: webui.Handler(),
-	})
+	}
+	var local *localServer
+	if o.withServer {
+		host, _ := os.Hostname()
+		local = &localServer{ctx: ctx, listen: listen, stateDir: o.serverDir, name: host, level: o.level}
+		deps.OnServerCreated = local.start
+	}
+	srv := api.New(deps)
 	hs := &http.Server{Addr: listen, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()
@@ -95,7 +106,15 @@ func serveControl(ctx context.Context, o *controlOpts) error {
 		hs.Shutdown(sctx)
 	}()
 	log.Info("control plane listening", "address", listen, "public_url", publicURL)
-	if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	// Listen first, so a server that is already registered can reach the web app the moment it starts.
+	ln, err := net.Listen("tcp", listen)
+	if err != nil {
+		return err
+	}
+	if local != nil {
+		local.startIfEnrolled()
+	}
+	if err := hs.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil

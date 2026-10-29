@@ -68,13 +68,13 @@ In the web app choose **Add a device**, pick whose it is, then **Windows** or **
 sudo sh install-linux.sh agent https://wardline.example.com <one-time code>
 ```
 
-**Windows:** first install [WireGuard for Windows](https://www.wireguard.com/install/) (Wardline uses it to run the connection). Download `wardline.exe` (the Add a device page links to it), open PowerShell **as administrator** in that folder and run the command Wardline shows:
+**Windows:** nothing else needs installing; `wardline.exe` carries its own connection software. Download it (the Add a device page links to it), open PowerShell **as administrator** in that folder and run the command Wardline shows:
 
 ```powershell
 .\wardline.exe agent install --control-url https://wardline.example.com --token <one-time code>
 ```
 
-It copies the program to `C:\Program Files\Wardline`, keeps its keys in `C:\ProgramData\Wardline` (readable only by the system and administrators), creates a "Wardline" service that starts with Windows and restarts if it stops, and starts it. `wardline.exe agent uninstall` takes it off the computer again.
+It copies the program and its network driver file (`wintun.dll`) to `C:\Program Files\Wardline`, keeps its keys in `C:\ProgramData\Wardline` (readable only by the system and administrators), creates a "Wardline" service that starts with Windows and restarts if it stops, and starts it. `wardline.exe agent uninstall` takes it off the computer again.
 
 Phones and Macs still use the official WireGuard app with a code or file.
 

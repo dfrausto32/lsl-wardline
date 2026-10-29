@@ -36,6 +36,9 @@ Copy-Item deploy/* $bundle
 docker run --rm -v "${PWD}/dist:/d" -w /d debian:bookworm-slim sh -c "chmod +x bundle/wardline && tar -czf release/wardline-linux-install.tar.gz -C bundle ."
 Remove-Item -Recurse -Force $bundle
 
+# wardline.exe carries the Wintun driver library; its licence goes with every release.
+Copy-Item internal/wintun/LICENSE.txt "$out/wintun-LICENSE.txt"
+
 Get-ChildItem $out -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" } | ForEach-Object {
     "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
 } | Set-Content "$out/SHA256SUMS.txt" -Encoding ascii

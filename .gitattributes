@@ -10,3 +10,4 @@
 *.ico binary
 *.pdf binary
 *.docx binary
+*.dll binary

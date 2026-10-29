@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 
 	"lsl-wardline/internal/agent"
-	"lsl-wardline/internal/wg"
+	"lsl-wardline/internal/wintun"
 )
 
 const (
@@ -124,11 +124,6 @@ func copyFile(from, to string) error {
 
 func installService(ctx context.Context, cmd *cobra.Command, o *agentOpts, build func() (*agent.Agent, error)) error {
 	say := func(s string) { fmt.Fprintln(cmd.OutOrStdout(), s) }
-	// The tunnel is run by the official WireGuard program; Wardline does not install it for you.
-	app := wg.NewWireGuardApp(filepath.Join(o.stateDir, "tunnels"))
-	if !app.Installed() {
-		return errors.New("WireGuard for Windows is not installed on this computer. Install it from https://www.wireguard.com/install/ and then run this command again")
-	}
 	m, err := mgr.Connect()
 	if err != nil {
 		return errors.New("this needs administrator rights: open Windows Terminal or PowerShell with \"Run as administrator\" and run the command again")
@@ -161,6 +156,10 @@ func installService(ctx context.Context, cmd *cobra.Command, o *agentOpts, build
 		if err := copyFile(self, exe); err != nil {
 			return fmt.Errorf("could not copy the program into place: %w", err)
 		}
+	}
+	// The network driver library the program carries goes next to the installed copy.
+	if err := wintun.PrepareIn(programDir()); err != nil {
+		return err
 	}
 
 	if err := os.MkdirAll(o.stateDir, 0o700); err != nil {
@@ -217,8 +216,7 @@ func uninstallService(ctx context.Context, cmd *cobra.Command, o *agentOpts) err
 		s.Delete()
 		s.Close()
 	}
-	app := wg.NewWireGuardApp(filepath.Join(o.stateDir, "tunnels"))
-	_ = app.Remove(ctx, o.iface)
+	// The tunnel lives inside the service, so stopping it above already took the connection down.
 	if err := os.RemoveAll(o.stateDir); err != nil {
 		return err
 	}

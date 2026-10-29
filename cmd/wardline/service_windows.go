@@ -151,15 +151,30 @@ func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
 	}
 	exe := filepath.Join(programDir(), "wardline.exe")
 
-	// An older copy that is running must stop before it can be replaced.
+	// Every Wardline service runs this same program file, so all of them must stop before it can be
+	// replaced. The ones that were running start again afterwards, even if something below fails.
 	existing, err := m.OpenService(sp.name)
 	if err == nil {
 		stopService(existing)
 	} else {
 		existing = nil
 	}
+	for _, name := range []string{agentServiceName, controlServiceName, gatewayServiceName} {
+		if name == sp.name {
+			continue
+		}
+		if other, err := m.OpenService(name); err == nil {
+			if st, qerr := other.Query(); qerr == nil && st.State == svc.Running {
+				stopService(other)
+				defer func(o *mgr.Service) { o.Start(); o.Close() }(other)
+				continue
+			}
+			other.Close()
+		}
+	}
+	removeAside(exe)
 	if self != exe {
-		if err := copyFile(self, exe); err != nil {
+		if err := replaceFile(exe, func(p string) error { return copyFile(self, p) }); err != nil {
 			return fmt.Errorf("could not copy the program into place: %w", err)
 		}
 	}
@@ -193,6 +208,9 @@ func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
 			return err
 		}
 	} else if s, err = m.CreateService(sp.name, exe, cfg, sp.args...); err != nil {
+		if errors.Is(err, windows.ERROR_SERVICE_MARKED_FOR_DELETE) {
+			return errors.New("Windows is still removing the old Wardline. Close the Services window and Task Manager if they are open, wait a few seconds, and try again")
+		}
 		return fmt.Errorf("could not create the %s service: %w", sp.display, err)
 	}
 	defer s.Close()

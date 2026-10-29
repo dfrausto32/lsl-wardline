@@ -70,6 +70,8 @@ Wardline opens in your normal web browser when the install finishes, and a **War
 
 **"Windows protected your PC".** Windows shows this for any program it has not seen many times that is not signed with a paid certificate. Choose **More info**, then **Run anyway**. It goes away once Wardline is signed (see `BLOCKED.md`). Do not turn Windows protection off.
 
+**Installing again updates the existing install** in place: it stops the Wardline services, swaps the program (moving a copy that is still in use aside), and starts the ones that were running. Your data and settings are kept.
+
 **With commands instead:** open PowerShell **as administrator** in the folder that holds `wardline.exe`.
 
 ```powershell

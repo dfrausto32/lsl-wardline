@@ -24,6 +24,8 @@ func main() {
 }
 
 func newRoot() *cobra.Command {
+	// On Windows, double-clicking opens the installer window, so cobra must not refuse to run when Explorer started us.
+	cobra.MousetrapHelpText = ""
 	root := &cobra.Command{
 		Use:           "wardline",
 		Short:         "Private networks for people who do not know networking",

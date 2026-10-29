@@ -72,4 +72,35 @@ const entries = sizes.map(([n, png]) => {
   return e;
 });
 writeFileSync("../cmd/wardline/wardline.ico", Buffer.concat([head, ...entries, ...sizes.map(([, p]) => p)]));
+
+// The tray icons (cmd/wardline/tray-*.ico): the shield with a small colored badge for how things are.
+// They are embedded in the program, so they must be rebuilt here whenever the shield changes.
+function buildIco(list) {
+  const h = Buffer.alloc(6);
+  h.writeUInt16LE(1, 2);
+  h.writeUInt16LE(list.length, 4);
+  let off = 6 + 16 * list.length;
+  const es = list.map(([n, png]) => {
+    const e = Buffer.alloc(16);
+    e[0] = n;
+    e[1] = n;
+    e.writeUInt16LE(1, 4);
+    e.writeUInt16LE(32, 6);
+    e.writeUInt32LE(png.length, 8);
+    e.writeUInt32LE(off, 12);
+    off += png.length;
+    return e;
+  });
+  return Buffer.concat([h, ...es, ...list.map(([, p]) => p)]);
+}
+for (const [name, color] of [["connected", "#1f9d3a"], ["problem", "#e8a317"], ["off", "#8a8478"]]) {
+  const badge = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="47" cy="47" r="15" fill="${color}" stroke="#ffffff" stroke-width="4"/></svg>`);
+  const list = [];
+  for (const n of [16, 20, 24, 32, 48]) {
+    const base = await sharp(svg, { density: 512 }).resize(n, n).png().toBuffer();
+    const dot = await sharp(badge, { density: 512 }).resize(n, n).png().toBuffer();
+    list.push([n, await sharp(base).composite([{ input: dot }]).png().toBuffer()]);
+  }
+  writeFileSync(`../cmd/wardline/tray-${name}.ico`, buildIco(list));
+}
 console.log("icons written");

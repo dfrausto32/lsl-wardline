@@ -117,6 +117,7 @@ type winSvc struct {
 	firewall            []fwRule                    // inbound rules to add
 	setup               func(context.Context) error // first-time setup, before the service exists (enrolling with a one-time code)
 	done                func() string               // what to tell the person once it runs
+	after               func(out io.Writer)         // best-effort extras once the service runs (shortcuts, tray icon)
 }
 
 func stopService(s *mgr.Service) {
@@ -220,6 +221,9 @@ func installWinService(ctx context.Context, out io.Writer, sp winSvc) error {
 		return fmt.Errorf("could not start the %s service: %w", sp.display, err)
 	}
 	say(sp.done())
+	if sp.after != nil {
+		sp.after(out)
+	}
 	return nil
 }
 

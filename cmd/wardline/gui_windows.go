@@ -58,6 +58,15 @@ func tell(text string) {
 // platformRoot is what double-clicking the program does: ask for permission, then open the installer window.
 func platformRoot(cmd *cobra.Command) error {
 	trace("started, administrator=%v", isAdmin())
+	// A computer that has already joined the network gets its status window, which needs no permission to look at.
+	if serviceExists(agentServiceName) {
+		trace("this computer has joined; opening the status window")
+		if err := runStatusWindow(cmd.Context()); err != nil {
+			trace("status window failed: %v", err)
+			tell("Wardline could not open its window: " + err.Error())
+		}
+		return nil
+	}
 	if !isAdmin() {
 		if err := relaunchAsAdmin(); err != nil {
 			trace("asking for permission failed: %v", err)

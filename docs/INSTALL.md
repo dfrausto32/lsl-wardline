@@ -72,6 +72,14 @@ Wardline opens in your normal web browser when the install finishes, and a **War
 
 **Letting devices reach each other.** By default each device can only talk to the server. On the server page (Home, then your server), once the server is online, the card **Let devices reach each other** turns on relaying through the server, so your machines can reach one another by their network addresses (shown under each device's Advanced section). It is still hub-and-spoke: nothing connects directly, and nothing is relayed to the rest of the server's own network. On a Linux server it needs the `nft` program (`apt install nftables`); the container image includes it. Turning it off blocks relaying again at once.
 
+**A computer that has joined the network** (a Windows PC set up with **Add this computer to my network**) shows three things, so it is not just an invisible service:
+
+- **A tray icon** near the clock: green when connected, amber when connecting or when something needs attention, grey when Wardline is stopped. Hover for a one-line status. Right-click for Open Wardline, Open the web app, Disconnect or Connect, Refresh security now, and Quit this icon. It starts when you sign in to Windows.
+- **A desktop window** (double-click `wardline.exe`, the Wardline icon on the desktop or in the Start menu, or the tray icon): a status light and the headline, this computer's address on the network, the server, when it last connected, data sent and received, the version, and buttons for Disconnect or Connect, Refresh security now, Open the web app, and Remove this computer. Looking needs no permission. The buttons that change the computer ask Windows for permission when pressed.
+- **A status file** the service keeps up to date at `C:ProgramDataWardline-statusstatus.json`, readable by everyone who uses the computer. It holds only what the window shows: no keys, no sign-in token.
+
+Installing again on a computer that has already joined needs no new code: `.wardline.exe agent install` as administrator updates it in place and adds the tray icon and window.
+
 **"Windows protected your PC".** Windows shows this for any program it has not seen many times that is not signed with a paid certificate. Choose **More info**, then **Run anyway**. It goes away once Wardline is signed (see `BLOCKED.md`). Do not turn Windows protection off.
 
 **Installing again updates the existing install** in place: it stops the Wardline services, swaps the program (moving a copy that is still in use aside), and starts the ones that were running. Your data and settings are kept.

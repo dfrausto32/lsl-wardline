@@ -50,8 +50,6 @@ type Deps struct {
 	PublicIP func(ctx context.Context) (string, error)
 	// OpenRouterPort asks the router to send the server port to this computer. Set only when this computer is the server.
 	OpenRouterPort func(ctx context.Context) portmap.Result
-	// DynamicDNSChanged tells the updater to run now. It must not block.
-	DynamicDNSChanged func()
 }
 
 type Server struct {
@@ -133,9 +131,6 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/network/public-address", s.admin(s.handlePublicAddress))
 	m.HandleFunc("POST /api/network/router-forwarding", s.admin(s.handleRouterForwarding))
 	m.HandleFunc("PUT /api/network/devices-reach-each-other", s.admin(s.handleReachPut))
-	m.HandleFunc("GET /api/network/dynamic-dns", s.admin(s.handleDynamicDNSGet))
-	m.HandleFunc("PUT /api/network/dynamic-dns", s.admin(s.handleDynamicDNSPut))
-	m.HandleFunc("DELETE /api/network/dynamic-dns", s.admin(s.handleDynamicDNSDelete))
 	m.HandleFunc("PUT /api/network/server-address", s.admin(s.handleServerAddress))
 	m.HandleFunc("GET /api/servers", s.admin(s.handleServers))
 	m.HandleFunc("POST /api/servers", s.admin(s.handleServerCreate))

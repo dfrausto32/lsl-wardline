@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { api } from "../api";
-import { messageOf } from "../hooks";
+import { messageOf, useLoad } from "../hooks";
 import { primary } from "../strings";
 import { Card } from "../components/ui";
+
+/** The same setting, loaded for the Home screen. */
+export function ReachSetting() {
+  const { data: net } = useLoad(() => api.network());
+  if (!net) return null;
+  return <ReachCard initial={!!net.devices_reach_each_other} />;
+}
 
 /** The one network setting people ask for: can the devices reach each other. Off until they say so. */
 export function ReachCard({ initial }: { initial: boolean }) {

@@ -1,0 +1,14 @@
+[Unit]
+Description=Wardline: install the newest signed release, if there is one
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wardline update run
+# Needs to replace the program and the service files and restart them, so it runs as root.
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+TimeoutStartSec=30min

@@ -5,6 +5,8 @@ import { useLoad } from "../hooks";
 import { fmt, primary } from "../strings";
 import { Banner, Button, Card, PlatformIcon, StatusChip } from "../components/ui";
 
+import { ReachSetting } from "./ReachCard";
+
 const h = primary.home;
 
 function DeviceRow({ d, onOpen }: { d: Device; onOpen: () => void }) {
@@ -125,6 +127,8 @@ export function Home({ navigate, removed }: { navigate: (to: string) => void; re
           </Card>
         </section>
       )}
+
+      {home.server.status === "online" && deviceCount > 1 && <ReachSetting />}
 
       <footer className="server-status" role="status" data-server={home.server.status}>
         {serverText}

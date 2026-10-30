@@ -35,6 +35,20 @@ test("Home lists machines with plain status (UX flow 3)", async ({ page }) => {
   await review(page, "home");
 });
 
+test("Home has the setting that lets machines reach each other, off until chosen", async ({ page }) => {
+  await page.goto("/");
+  const box = page.getByRole("checkbox", { name: primary.setup.reachLabel });
+  await expect(page.getByRole("heading", { name: primary.setup.reachTitle })).toBeVisible();
+  await expect(box).not.toBeChecked();
+  await box.check();
+  await expect(page.getByText(primary.setup.reachSaved)).toBeVisible();
+  await page.reload();
+  await expect(box).toBeChecked();
+  // Put it back so the other tests still see the default.
+  await box.uncheck();
+  await expect(page.getByText(primary.setup.reachSaved)).toBeVisible();
+});
+
 test("device details show status, last seen and Advanced (UX flow 4)", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: /Sam's iPhone/ }).click();

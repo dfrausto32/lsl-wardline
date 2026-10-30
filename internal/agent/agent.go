@@ -589,6 +589,7 @@ func (a *Agent) Run(ctx context.Context) error {
 	if err := a.Start(ctx); err != nil {
 		return err
 	}
+	defer a.WriteStoppedStatus() // runs after cancel() below, so the ticks have stopped writing
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var revoked sync.Once

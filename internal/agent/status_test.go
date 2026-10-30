@@ -84,6 +84,7 @@ func TestDescribingTheStatusInPlainWords(t *testing.T) {
 		{"server unreachable", fresh(func(s *Status) { s.Connected = false; s.Problem = ProblemServerUnreachable }), StateProblem, "reach the server"},
 		{"name not found", fresh(func(s *Status) { s.Connected = false; s.Problem = ProblemNameNotFound }), StateProblem, "find the server"},
 		{"refresh failed but still connected", fresh(func(s *Status) { s.Problem = ProblemRefreshFailed }), StateProblem, "security"},
+		{"the service said it stopped", fresh(func(s *Status) { s.Stopped = true }), StateOff, "not running"},
 		{"the service stopped writing", fresh(func(s *Status) { s.Time = now.Add(-time.Minute) }), StateOff, "not running"},
 		{"never written", Status{}, StateOff, "not running"},
 	}

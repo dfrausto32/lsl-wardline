@@ -39,7 +39,7 @@ func newRoot() *cobra.Command {
 		Run:   func(cmd *cobra.Command, _ []string) { fmt.Fprintln(cmd.OutOrStdout(), version) },
 	})
 	root.AddCommand(onOffCommands()...)
-	root.AddCommand(updateCmd())
+	root.AddCommand(updateCmd(), namesCmd())
 	platformRootCommands(root)
 	return root
 }

@@ -1,0 +1,7 @@
+// Lets the Wardline service change the name settings of its own network interface (systemd-resolved),
+// so computers on the network can find each other by name. It can do nothing else with this permission.
+polkit.addRule(function(action, subject) {
+    if (subject.user == "wardline" && action.id.indexOf("org.freedesktop.resolve1.") == 0) {
+        return polkit.Result.YES;
+    }
+});

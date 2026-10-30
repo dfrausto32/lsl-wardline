@@ -15,6 +15,7 @@ import (
 
 	"lsl-wardline/internal/agent"
 	"lsl-wardline/internal/audit"
+	"lsl-wardline/internal/names"
 	"lsl-wardline/internal/store"
 	"lsl-wardline/internal/wg"
 )
@@ -90,6 +91,10 @@ func (s *Server) createAgentDevice(w http.ResponseWriter, r *http.Request, admin
 	expires := now.Add(enrollTokenTTL)
 	if _, err := tx.ExecContext(ctx, `INSERT INTO devices(id,network_id,person_id,name,platform,kind,tunnel_ip,status,added_at) VALUES(?,?,?,?,?,?,?,?,?)`,
 		id, n.ID, personID, name, platform, "agent", "pending-"+id, "waiting", ts); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if err := giveShortName(ctx, tx, n.ID, id, name); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -271,6 +276,13 @@ func (s *Server) buildAgentState(ctx context.Context, deviceID string, version i
 			return st, err
 		}
 		st.PresharedKey = string(pt)
+	}
+	if n.Reach { // names answer only while machines can reach each other
+		sip, err := s.d.IPAM.ServerIP(ctx, s.d.Store.DB(), n.ID)
+		if err != nil {
+			return st, err
+		}
+		st.NamesDomain, st.NamesServer = names.Domain, sip.String()
 	}
 	return st, nil
 }

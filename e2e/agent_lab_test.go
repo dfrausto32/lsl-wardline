@@ -91,12 +91,35 @@ func agentSteps(t *testing.T, l *lab, serverTunnelIP string) {
 		return ok && time.Since(ts) < 4*time.Second
 	})
 	t.Log("with the setting on, one device reached another through the server")
+
+	// Names come with the same setting: the server answers them over the tunnel, from the real name service.
+	lookup := func(name string) string {
+		l.writeFile("agent-1.lookup", name+" "+serverTunnelIP+"\n")
+		time.Sleep(2500 * time.Millisecond) // the lab computer asks once a second
+		b, _ := os.ReadFile(filepath.Join(l.dir, "agent-1.lookupout"))
+		return strings.TrimSpace(string(b))
+	}
+	var named struct {
+		ShortName string `json:"short_name"`
+	}
+	l.must("GET", "/api/devices/"+devs[1].id, nil, &named, 200)
+	full := named.ShortName + ".wardline.internal"
+	l.eventually("agent-1 to find agent-2 by name", 40*time.Second, func() bool { return lookup(full) == other.Advanced.Address })
+	l.eventually("agent-1 to find the server by name", 20*time.Second, func() bool { return lookup("server.wardline.internal") == serverTunnelIP })
+	l.must("PUT", "/api/devices/"+devs[1].id+"/names", map[string]any{"short_name": "", "aliases": []string{"files"}}, nil, 200)
+	l.eventually("an extra name to reach agent-2", 40*time.Second, func() bool { return lookup("files.wardline.internal") == other.Advanced.Address })
+	if got := lookup("nobody.wardline.internal"); !strings.Contains(got, "no such name") {
+		t.Fatalf("an unknown name should be refused in plain words, got %q", got)
+	}
+	t.Log("names work over the tunnel: a machine, the server and an extra name")
 	l.must("PUT", "/api/network/devices-reach-each-other", map[string]bool{"enabled": false}, nil, 200)
 	l.eventually("the devices to be isolated again", 40*time.Second, func() bool {
 		ts, ok := l.lastFile("agent-1.peerok")
 		return ok && time.Since(ts) >= 5*time.Second
 	})
 	t.Log("turning it off isolated them again")
+	l.eventually("names to stop answering with the setting off", 40*time.Second, func() bool { return lookup(full) != other.Advanced.Address })
+	t.Log("with the setting off, no name is answered")
 
 	// Removing access: traffic stops, and the computer deletes its tunnel and keys by itself.
 	removedAt := time.Now()

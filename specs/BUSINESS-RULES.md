@@ -37,6 +37,17 @@ These are the rules most likely to be got wrong. Each needs a test.
 ## Expiry
 Optional per-device expiry (for guests and temporary devices). At expiry the device is removed by the sweep, with an Activity entry.
 
+## Names for machines
+- Every machine has a **short name** made from its name: lowercase letters and digits, runs of anything else become one hyphen, no hyphen at either end, at most 63 characters, `machine` if nothing is left. It follows the machine's name whenever the machine is renamed, unless the person set a short name by hand (then it stays until they clear it).
+- A short name is unique among the network's machines, **extra names** and the server. If taken, a number is added: `office-pc-2`. A short name typed by hand that is taken or reserved is refused with a plain message, never numbered.
+- Reserved: `server`, `localhost`, `wardline`. The server is always `server`.
+- Extra names follow the same character rules and uniqueness. A machine can have up to 10. Removing a machine frees all its names.
+- The full name is the name plus `.wardline.internal`. The ending is fixed for now.
+- **Names answer only while "Machines can reach each other" is on.** While it is off the server answers no name and machines are told to use no name service. Turning it on or off bumps the desired-state version like any other change.
+- The name service runs on the server at its own network address (UDP 53). It answers only the fixed ending: A records for machines, the server and extra names; an empty answer for other record types of a known name; "no such name" for an unknown name under the ending; refused for anything else. It never forwards anything and keeps no log of lookups.
+- A machine is told (in its desired state) the ending and the server's address, and sets its own system to ask the server for that ending only. Everything else keeps using the machine's normal name service. If the machine's system cannot do this, the machine reports it and the device page says so; nothing else breaks.
+- Machines that already exist get short names from their current names the first time this version runs; nothing is renamed afterwards unless the person renames it.
+
 ## Moving to a new server
 State machine: `planned` then `preflight` then `provisioned` then `testing` then `switching` then `verifying` then `soaking` then `finished`. Any state before `finished` can go to `rolled_back` with one action.
 - **Strategy is chosen automatically, never by the user.**

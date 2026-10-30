@@ -168,7 +168,11 @@ func (s *Server) handleAgentReport(w http.ResponseWriter, r *http.Request, devic
 	if len(problem) > 40 {
 		problem = ""
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE devices SET agent_reported_at=?, agent_problem=? WHERE id=?`, now.Format(time.RFC3339), problem, deviceID); err != nil {
+	namesStatus := in.Names
+	if namesStatus != agent.NamesOK && namesStatus != agent.NamesUnavailable {
+		namesStatus = ""
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE devices SET agent_reported_at=?, agent_problem=?, agent_names=? WHERE id=?`, now.Format(time.RFC3339), problem, namesStatus, deviceID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

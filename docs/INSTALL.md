@@ -134,6 +134,23 @@ wardline status    # say whether it is on
 
 On Linux they use `sudo` when you are not root; on Windows they ask for permission (the same prompt as the Disconnect button in the Wardline window). Turning off does not remove the computer from the network or delete its keys; `wardline agent uninstall` does that.
 
+## Names for machines
+
+Turn on **Machines can reach each other and find each other by name** in the web app (Home, once two machines are connected). While it is on:
+
+- every machine is reachable by a name made from its name: "Office PC" is `office-pc.wardline.internal`. The server is `server.wardline.internal`. A machine's page shows its name and has a Copy button; **Advanced** lets you set the short name yourself and add extra names (for example `files`).
+- the server answers these names itself, on its private address. It answers nothing else, forwards nothing and keeps no log of lookups.
+- each joined computer is told to ask the server for names ending in `.wardline.internal` and nothing else. Everything else keeps using the computer's usual name settings.
+
+How a computer is set up for this:
+
+- **Windows:** the Wardline service adds one rule for `.wardline.internal` to Windows' name settings (and removes it when Wardline stops, is turned off or is removed). Use the full name, for example `ping office-pc.wardline.internal`.
+- **Linux:** it uses `systemd-resolved` for the tunnel interface only, so `ping office-pc` also works. The install script (`agent` role) adds a small permission file so the Wardline service may do this and nothing else: `/etc/polkit-1/rules.d/50-wardline-names.rules` (or the older `.pkla` form). For a computer installed before this version, copy `wardline-names.rules` from the install package there by hand: `sudo install -m 0644 wardline-names.rules /etc/polkit-1/rules.d/50-wardline-names.rules`.
+- **Phones, Macs and anything else using the WireGuard app:** no names; use the address.
+- A computer that cannot be set up (no `systemd-resolved`, or the permission is missing) says so on its page, and keeps working. To test by hand from any joined computer: `wardline names lookup office-pc.wardline.internal <the server's private address>`.
+
+The server's own service needs permission to listen on port 53 (UDP) at its private address: the systemd files grant `CAP_NET_BIND_SERVICE`, and a Windows server gets a firewall rule named "Wardline names".
+
 ## Running and checking the services
 
 ```bash

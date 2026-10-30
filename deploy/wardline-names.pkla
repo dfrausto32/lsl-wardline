@@ -1,0 +1,6 @@
+[Wardline name settings]
+Identity=unix-user:wardline
+Action=org.freedesktop.resolve1.*
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes

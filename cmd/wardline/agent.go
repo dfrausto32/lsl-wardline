@@ -123,7 +123,7 @@ func buildAgent(o *agentOpts, refreshCheck time.Duration) (*agent.Agent, error) 
 	return agent.New(agent.Config{
 		StateDir: o.stateDir, Iface: o.iface, ControlURL: o.controlURL, EnrollToken: o.token, Version: version,
 		Control: agent.NewHTTPControl(o.controlURL, &http.Client{}), Backend: b, Log: log, RefreshCheckEvery: refreshCheck,
-		StatusPath: o.statusFile,
+		StatusPath: o.statusFile, Names: newNameClient(),
 	}), nil
 }
 

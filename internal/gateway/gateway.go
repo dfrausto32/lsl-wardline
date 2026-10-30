@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -47,6 +48,8 @@ type Config struct {
 	Backend     wg.Backend
 	Log         *slog.Logger
 	ReportEvery time.Duration
+	// ListenNames opens the socket the name service answers on, given the server's own address. Tests replace it.
+	ListenNames func(netip.Addr) (net.PacketConn, error)
 }
 
 type Gateway struct {
@@ -55,6 +58,9 @@ type Gateway struct {
 	id      Identity
 	started bool
 	devices map[string]string // public key -> device id
+
+	nsMu sync.Mutex
+	ns   *nameService
 }
 
 func New(cfg Config) *Gateway {
@@ -184,6 +190,7 @@ func (g *Gateway) apply(ctx context.Context, st DesiredState) (wg.Diff, error) {
 			g.cfg.Log.Error("could not change whether devices can reach each other", "error", err.Error())
 		}
 	}
+	g.applyNames(st, addr.Addr())
 	if st.Version != g.id.LastVersion {
 		g.id.LastVersion = st.Version
 		if err := g.saveIdentity(); err != nil {
@@ -224,6 +231,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	if err := g.Start(ctx); err != nil {
 		return err
 	}
+	defer g.stopNames()
 	go func() {
 		t := time.NewTicker(g.cfg.ReportEvery)
 		defer t.Stop()

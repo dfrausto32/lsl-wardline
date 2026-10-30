@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"lsl-wardline/internal/audit"
+	"lsl-wardline/internal/names"
 	"lsl-wardline/internal/render"
 	"lsl-wardline/internal/store"
 	"lsl-wardline/internal/wg"
@@ -120,12 +121,16 @@ type deviceRow struct {
 	Rx, Tx                                                 int64
 	AgentVersion, AgentProblem                             string
 	AgentReported, RefreshFailed                           *time.Time
+	ShortName, AgentNames                                  string
+	ShortCustom                                            bool
+	Aliases                                                []string
 }
 
 func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]deviceRow, error) {
 	rows, err := s.d.Store.DB().QueryContext(ctx, `SELECT d.id, d.person_id, p.display_name, d.name, d.platform, d.kind, d.status, d.tunnel_ip,
 		COALESCE(k.public_key,''), COALESCE(d.last_endpoint,''), d.added_at, d.last_seen_at, d.refresh_due_at, d.rx_bytes, d.tx_bytes,
-		COALESCE(d.agent_version,''), COALESCE(d.agent_problem,''), d.agent_reported_at, d.refresh_failed_at
+		COALESCE(d.agent_version,''), COALESCE(d.agent_problem,''), d.agent_reported_at, d.refresh_failed_at,
+		COALESCE(d.short_name,''), d.short_name_custom, COALESCE(d.agent_names,'')
 		FROM devices d JOIN people p ON p.id=d.person_id LEFT JOIN device_keys k ON k.device_id=d.id AND k.state='active'
 		WHERE d.status <> 'removed' `+where+` ORDER BY d.added_at, d.id`, args...)
 	if err != nil {
@@ -138,7 +143,7 @@ func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]
 		var added string
 		var seen, due, reported, failed sql.NullString
 		if err := rows.Scan(&d.ID, &d.PersonID, &d.PersonName, &d.Name, &d.Platform, &d.Kind, &d.Status, &d.TunnelIP, &d.PublicKey, &d.Endpoint,
-			&added, &seen, &due, &d.Rx, &d.Tx, &d.AgentVersion, &d.AgentProblem, &reported, &failed); err != nil {
+			&added, &seen, &due, &d.Rx, &d.Tx, &d.AgentVersion, &d.AgentProblem, &reported, &failed, &d.ShortName, &d.ShortCustom, &d.AgentNames); err != nil {
 			return nil, err
 		}
 		d.Added, _ = time.Parse(time.RFC3339, added)
@@ -146,7 +151,40 @@ func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]
 		d.AgentReported, d.RefreshFailed = parseTime(reported), parseTime(failed)
 		out = append(out, d)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	if err := s.attachAliases(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// attachAliases adds each machine's extra names.
+func (s *Server) attachAliases(ctx context.Context, ds []deviceRow) error {
+	if len(ds) == 0 {
+		return nil
+	}
+	byID := map[string]*deviceRow{}
+	for i := range ds {
+		byID[ds[i].ID] = &ds[i]
+	}
+	rows, err := s.d.Store.DB().QueryContext(ctx, `SELECT a.device_id, a.name FROM device_aliases a JOIN devices d ON d.id=a.device_id WHERE d.status <> 'removed' ORDER BY a.name`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return err
+		}
+		if d, ok := byID[id]; ok {
+			d.Aliases = append(d.Aliases, name)
+		}
+	}
+	return rows.Err()
 }
 
 // displayStatus is what people see: waiting, connected or not_seen.
@@ -169,15 +207,27 @@ func (s *Server) agentProblem(d deviceRow) string {
 	return d.AgentProblem
 }
 
+// agentNames is what the computer itself says about using names, if it said so recently.
+func (s *Server) agentNames(d deviceRow) string {
+	if d.Kind != "agent" || d.AgentReported == nil || s.now().Sub(*d.AgentReported) > agentReportFresh {
+		return ""
+	}
+	return d.AgentNames
+}
+
 func (s *Server) view(d deviceRow) map[string]any {
 	v := map[string]any{
 		"id": d.ID, "person_id": d.PersonID, "person_name": d.PersonName, "name": d.Name, "platform": d.Platform, "kind": d.Kind,
 		"status": s.displayStatus(d), "last_seen_at": d.Seen, "added_at": d.Added,
 		// Only phones and computers set up by hand need a person to refresh them; agents do it themselves.
 		"refresh_due": d.Kind == "manual" && d.RefreshDue != nil && !s.now().Before(*d.RefreshDue),
+		"short_name":  d.ShortName, "short_name_custom": d.ShortCustom, "aliases": append([]string{}, d.Aliases...),
+	}
+	if d.ShortName != "" {
+		v["name_on_network"] = names.Full(d.ShortName)
 	}
 	if d.Kind == "agent" {
-		v["agent"] = map[string]any{"version": d.AgentVersion, "problem": s.agentProblem(d), "reported_at": d.AgentReported}
+		v["agent"] = map[string]any{"version": d.AgentVersion, "problem": s.agentProblem(d), "reported_at": d.AgentReported, "names": s.agentNames(d)}
 	}
 	return v
 }
@@ -371,6 +421,10 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 		s.serverError(w, r, err)
 		return
 	}
+	if err := giveShortName(ctx, tx, n.ID, id, name); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	ip, err := s.d.IPAM.Allocate(ctx, tx, n.ID, id)
 	if err != nil {
 		s.fail(w, http.StatusConflict, "Your network has no room for more devices.")
@@ -459,6 +513,7 @@ func (s *Server) handleDeviceRemove(w http.ResponseWriter, r *http.Request, admi
 		{`UPDATE devices SET status='removed', removed_at=? WHERE id=?`, []any{ts, id}},
 		{`UPDATE device_keys SET state='retired', retired_at=? WHERE device_id=? AND state <> 'retired'`, []any{ts, id}},
 		{`DELETE FROM preshared_keys WHERE device_id=?`, []any{id}},
+		{`DELETE FROM device_aliases WHERE device_id=?`, []any{id}},
 	}
 	for _, st := range steps {
 		if _, err := tx.ExecContext(ctx, st.q, st.args...); err != nil {

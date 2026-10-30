@@ -82,6 +82,9 @@ type Config struct {
 	RefreshCheckEvery time.Duration // default 5m
 	HandshakeWait     time.Duration // how long a new key gets to prove itself; default 30s
 
+	// Names sets this computer to use the network's names. Nil means this system cannot.
+	Names NameClient
+
 	// StatusPath, when set, is a file the agent keeps up to date for the tray icon and desktop window.
 	StatusPath string
 }
@@ -97,6 +100,7 @@ type Agent struct {
 	endpoint  string // the resolved address currently applied
 	appliedAt time.Time
 	prob      string
+	names     string    // what to report about using names: NamesOK, NamesUnavailable or empty
 	attempted time.Time // last refresh attempt
 }
 
@@ -344,6 +348,7 @@ func (a *Agent) apply(ctx context.Context, st DesiredState) (wg.Diff, error) {
 	if err != nil {
 		return d, err
 	}
+	a.applyNames(ctx, st)
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.last == nil || a.endpoint != ep || a.last.ServerPublicKey != st.ServerPublicKey {
@@ -541,10 +546,10 @@ func (a *Agent) ReportNow(ctx context.Context) error {
 // measure reads how the tunnel is doing right now. It also returns the last instructions applied, if any.
 func (a *Agent) measure(ctx context.Context) (Report, *DesiredState) {
 	a.mu.Lock()
-	id, last, prob, appliedAt := a.id, a.last, a.prob, a.appliedAt
+	id, last, prob, appliedAt, namesStatus := a.id, a.last, a.prob, a.appliedAt, a.names
 	a.mu.Unlock()
 	now := a.cfg.Now()
-	r := Report{DeviceID: id.DeviceID, Time: now.UTC(), AppliedVersion: id.LastVersion, AgentVersion: a.cfg.Version}
+	r := Report{DeviceID: id.DeviceID, Time: now.UTC(), AppliedVersion: id.LastVersion, AgentVersion: a.cfg.Version, Names: namesStatus}
 	if last != nil {
 		peers, err := a.cfg.Backend.Peers(ctx, a.cfg.Iface)
 		if err == nil {
@@ -575,6 +580,7 @@ func (a *Agent) measure(ctx context.Context) (Report, *DesiredState) {
 func (a *Agent) teardown(ctx context.Context) {
 	a.opMu.Lock()
 	defer a.opMu.Unlock()
+	a.clearNames(ctx)
 	if err := a.cfg.Backend.Remove(ctx, a.cfg.Iface); err != nil {
 		a.cfg.Log.Warn("could not remove the tunnel", "error", err.Error())
 	}
@@ -672,6 +678,7 @@ func (a *Agent) Run(ctx context.Context) error {
 	// Stopped on purpose (turned off, or the computer is shutting down): leave the network, keep the keys.
 	// A kernel tunnel would otherwise stay up with nothing running it, and the computer would still look connected.
 	a.opMu.Lock()
+	a.clearNames(context.Background())
 	if err := a.cfg.Backend.Remove(context.Background(), a.cfg.Iface); err != nil {
 		a.cfg.Log.Warn("could not take the tunnel down", "error", err.Error())
 	}

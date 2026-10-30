@@ -31,6 +31,7 @@ func installControlService(ctx context.Context, out io.Writer, o *controlOpts) (
 		args = append(args, localServerArgs(o.serverDir)...)
 		lock = append(lock, o.serverDir)
 		rules = append(rules, gatewayFirewall(gatewayPort)...)
+		rules = append(rules, namesFirewall()...)
 	}
 	err := installWinService(ctx, out, winSvc{
 		name: controlServiceName, display: "Wardline web app", desc: "The Wardline web app and database for your private network.",
@@ -61,7 +62,7 @@ func installGatewayService(ctx context.Context, out io.Writer, o *gatewayOpts) e
 		name: gatewayServiceName, display: "Wardline server", desc: "Lets your devices connect to your private network.",
 		args:     gatewayServiceArgs(o.controlURL, o.stateDir, o.iface, name),
 		lockDirs: []string{o.stateDir},
-		firewall: gatewayFirewall(gatewayPort),
+		firewall: append(gatewayFirewall(gatewayPort), namesFirewall()...),
 		// The one-time code is used here, once, and is not kept in the service settings.
 		setup: func(ctx context.Context) error {
 			g, err := buildGateway(o)
@@ -92,7 +93,7 @@ func platformControlCommands(c *cobra.Command, o *controlOpts) {
 		Use:   "uninstall",
 		Short: "Stop the Wardline web app service (run as administrator). The database is kept.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := uninstallWinService(controlServiceName, webRuleName, serverRuleName); err != nil {
+			if err := uninstallWinService(controlServiceName, webRuleName, serverRuleName, namesRuleName); err != nil {
 				return err
 			}
 			removeDesktopShortcut()
@@ -113,7 +114,7 @@ func platformGatewayCommands(c *cobra.Command, o *gatewayOpts) {
 		Use:   "uninstall",
 		Short: "Stop the Wardline server service (run as administrator). Its saved identity is kept.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := uninstallWinService(gatewayServiceName, serverRuleName); err != nil {
+			if err := uninstallWinService(gatewayServiceName, serverRuleName, namesRuleName); err != nil {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "The Wardline server was stopped and removed. Its identity is still in %s.\n", o.stateDir)

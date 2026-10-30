@@ -1,6 +1,9 @@
 package audit
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Sentences shown in Activity. They follow the vocabulary in specs/UX.md.
 
@@ -53,4 +56,18 @@ func SentenceReachChanged(actor string, on bool) string {
 
 func SentenceDeviceRenamed(old, name string) string {
 	return fmt.Sprintf("%s was renamed to %s.", old, name)
+}
+
+// SentenceDeviceRenamedOnNetwork adds what the machine is called on the network, when that changed with the rename.
+func SentenceDeviceRenamedOnNetwork(old, name, short string) string {
+	return fmt.Sprintf("%s was renamed to %s. Its name on the network is now %s.", old, name, short)
+}
+
+// SentenceDeviceNames says what a machine is called on the network after its names were changed by hand.
+func SentenceDeviceNames(actor, device, short string, aliases []string) string {
+	s := fmt.Sprintf("%s changed the names for %s. Its name on the network is %s", actor, device, short)
+	if len(aliases) > 0 {
+		s += " and it is also known as " + strings.Join(aliases, ", ")
+	}
+	return s + "."
 }

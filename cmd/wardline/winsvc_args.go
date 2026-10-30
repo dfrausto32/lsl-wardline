@@ -37,6 +37,7 @@ func firewallDeleteArgs(name string) []string {
 const (
 	webRuleName    = "Wardline web"
 	serverRuleName = "Wardline server"
+	namesRuleName  = "Wardline names"
 )
 
 // The web app can change who is on the network, so it is only opened on home and work networks, never public ones.
@@ -46,6 +47,11 @@ func controlFirewall(listen string) []fwRule {
 		port = "8080"
 	}
 	return []fwRule{{Name: webRuleName, Proto: "TCP", Port: port, Profile: "private,domain"}}
+}
+
+// The name service listens only on the server's own network address, so opening its port does not expose it to other networks.
+func namesFirewall() []fwRule {
+	return []fwRule{{Name: namesRuleName, Proto: "UDP", Port: "53", Profile: "any"}}
 }
 
 // The server's port only answers devices that hold a valid key, so it is open on any network.

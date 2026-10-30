@@ -156,7 +156,7 @@ func realInstallActions() installActions {
 			services := []struct {
 				name  string
 				rules []string
-			}{{gatewayServiceName, []string{serverRuleName}}, {controlServiceName, []string{webRuleName, serverRuleName}}, {agentServiceName, nil}}
+			}{{gatewayServiceName, []string{serverRuleName, namesRuleName}}, {controlServiceName, []string{webRuleName, serverRuleName, namesRuleName}}, {agentServiceName, nil}}
 			for _, s := range services {
 				if err := uninstallWinService(s.name, s.rules...); err != nil {
 					return err

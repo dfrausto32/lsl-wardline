@@ -122,6 +122,18 @@ Phones and Macs still use the official WireGuard app with a code or file.
 
 To make a computer refresh its security right now instead of waiting (for example to test it): `wardline agent refresh` on that computer.
 
+## Turning this computer off and on
+
+On a computer that has joined (Windows or Linux), three short commands:
+
+```bash
+wardline off       # leave the private network until you turn it back on
+wardline on        # join it again
+wardline status    # say whether it is on
+```
+
+On Linux they use `sudo` when you are not root; on Windows they ask for permission (the same prompt as the Disconnect button in the Wardline window). Turning off does not remove the computer from the network or delete its keys; `wardline agent uninstall` does that.
+
 ## Running and checking the services
 
 ```bash

@@ -89,6 +89,7 @@ func runStatusWindow(ctx context.Context) error {
 		return nil
 	}
 	defer w.Destroy()
+	themeWindow(w.Window())
 	w.Navigate(url)
 	w.Run()
 	return nil

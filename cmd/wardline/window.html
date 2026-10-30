@@ -76,11 +76,20 @@
     $("refresh").disabled = !running;
   }
   function poll() { call("/api/status").then(show); }
+  var quick = null;
+  // After a button that changes the computer, look every half second for a few seconds instead of every three.
+  function watchClosely() {
+    if (quick) { clearInterval(quick); }
+    var n = 0;
+    quick = setInterval(function () { poll(); if (++n >= 30) { clearInterval(quick); quick = null; } }, 500);
+  }
   function act(name, text) {
     $("note").textContent = text || "";
+    if (name === "disconnect" || name === "connect") { $("toggle").disabled = true; }
     call("/api/action", { name: name }).then(function (out) {
       if (out && out.ok === false) { $("note").textContent = out.message; }
-      setTimeout(poll, 1500);
+      $("toggle").disabled = false;
+      watchClosely();
     });
   }
   $("toggle").onclick = function () { act(running ? "disconnect" : "connect", "Windows will ask for permission."); };

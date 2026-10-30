@@ -24,6 +24,7 @@ type Status struct {
 	TxBytes       int64      `json:"tx_bytes"`
 	Problem       string     `json:"problem,omitempty"`
 	RefreshDue    *time.Time `json:"refresh_due,omitempty"`
+	Stopped       bool       `json:"stopped,omitempty"` // the service wrote this as it shut down, so nobody has to wait to find out
 }
 
 type State string
@@ -41,7 +42,7 @@ const statusStaleAfter = 20 * time.Second
 // Describe says in plain words how things are. A status that has not been refreshed lately means the
 // service is not running.
 func (s Status) Describe(now time.Time) (State, string) {
-	if s.Time.IsZero() || now.Sub(s.Time) > statusStaleAfter {
+	if s.Stopped || s.Time.IsZero() || now.Sub(s.Time) > statusStaleAfter {
 		return StateOff, "Wardline is not running on this computer."
 	}
 	switch s.Problem {
@@ -74,6 +75,18 @@ func (a *Agent) WriteStatus(ctx context.Context) error {
 	if last != nil {
 		s.Address, s.Server, s.RefreshDue = last.Address, last.Endpoint, last.RefreshDue
 	}
+	return a.writeStatusFile(s)
+}
+
+// WriteStoppedStatus is the last thing a stopping service writes, so the tray and the window show "off" at once.
+func (a *Agent) WriteStoppedStatus() error {
+	if a.cfg.StatusPath == "" {
+		return nil
+	}
+	return a.writeStatusFile(Status{Time: a.cfg.Now().UTC(), Version: a.cfg.Version, Interface: a.cfg.Iface, ControlURL: a.cfg.ControlURL, Stopped: true})
+}
+
+func (a *Agent) writeStatusFile(s Status) error {
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err

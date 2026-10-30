@@ -669,6 +669,13 @@ func (a *Agent) Run(ctx context.Context) error {
 		return ErrRevoked
 	default:
 	}
+	// Stopped on purpose (turned off, or the computer is shutting down): leave the network, keep the keys.
+	// A kernel tunnel would otherwise stay up with nothing running it, and the computer would still look connected.
+	a.opMu.Lock()
+	if err := a.cfg.Backend.Remove(context.Background(), a.cfg.Iface); err != nil {
+		a.cfg.Log.Warn("could not take the tunnel down", "error", err.Error())
+	}
+	a.opMu.Unlock()
 	return ctx.Err()
 }
 

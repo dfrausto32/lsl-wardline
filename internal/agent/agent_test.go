@@ -343,6 +343,38 @@ func TestARemovedDeviceTearsDownItsTunnelAndForgetsItsKey(t *testing.T) {
 	}
 }
 
+func TestStoppingTheAgentTakesTheTunnelDownButKeepsTheKey(t *testing.T) {
+	r := newRig(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	if _, err := r.a.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- r.a.Run(ctx) }()
+	time.Sleep(100 * time.Millisecond)
+	cancel() // what stopping the service does
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the agent did not stop")
+	}
+	if _, err := r.fake.Peers(context.Background(), "wardline-agent"); err == nil {
+		t.Fatal("the tunnel is still up after the agent stopped, so the computer is still on the network")
+	}
+	if _, err := os.Stat(filepath.Join(r.dir, "agent.json")); err != nil {
+		t.Fatal("stopping must keep this computer's identity so it can come back on")
+	}
+	// Turning it back on brings the tunnel back without a new code.
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	if _, err := r.a.Sync(ctx2); err != nil {
+		t.Fatalf("could not come back on: %v", err)
+	}
+	if len(r.peers()) != 1 {
+		t.Fatal("the tunnel did not come back")
+	}
+}
+
 func TestAgentReportsItsOwnHealthInPlainTerms(t *testing.T) {
 	r := newRig(t)
 	ctx := context.Background()

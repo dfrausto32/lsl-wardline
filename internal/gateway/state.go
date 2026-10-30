@@ -34,6 +34,15 @@ type DesiredState struct {
 	Peers      []DesiredPeer `json:"peers"`
 	// DevicesReachEachOther is the network setting: when true the server relays traffic from one device to another.
 	DevicesReachEachOther bool `json:"devices_reach_each_other"`
+	// NamesDomain and Names are what the server's name service answers. Both are empty while devices are kept apart.
+	NamesDomain string       `json:"names_domain,omitempty"`
+	Names       []NameRecord `json:"names,omitempty"`
+}
+
+// NameRecord is one name (without the ending) and the address it stands for.
+type NameRecord struct {
+	Name string `json:"name"`
+	IP   string `json:"ip"`
 }
 
 // Signed carries the exact bytes that were signed.

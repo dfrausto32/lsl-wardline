@@ -27,6 +27,7 @@ Someone who can install an app and scan a QR code but has never heard of a subne
 | Activity | audit log |
 | Security code / QR code | public key, private key, config |
 | Person | (not used: there are no people, only machines) |
+| Name on the network | DNS, hostname, FQDN, domain, zone, suffix |
 
 A test scans the UI string file and fails if any "never say" term appears outside the Advanced namespace.
 
@@ -43,7 +44,7 @@ A test scans the UI string file and fails if any "never say" term appears outsid
 ### 2. Add a device
 1. "Add a device" button on Home (always visible, including a floating button on mobile).
 2. "What kind of machine is it?" Big buttons: iPhone, Android, Windows, Mac, Linux.
-3. "What should it be called?" A name for the machine, such as "Office PC". Left empty it is named after its kind. There are no people in Wardline, only machines (decided by Dylan, 2026-10-29).
+3. "What should it be called?" A name for the machine, such as "Office PC". Left empty it is named after its kind. There are no people in Wardline, only machines (decided by Dylan, 2026-10-29). Under the box, live: "Other machines will find it as `office-pc`." (see flow 9).
 4. Show the right instructions for that device, minimal:
    - iPhone/Android: "Install the WireGuard app" (store link), then "Scan this code" with a QR code on screen. Also a "Send me a link" option for a person's own phone.
    - Windows/Mac/Linux (phase 1): "Download this file" and "Open it in the WireGuard app", with the install link. Phase 2 replaces this with a one-click installer.
@@ -76,6 +77,17 @@ If the server address is a raw IP address, step 1 stops and explains that device
 
 ### 8. Activity
 A plain-language timeline: "Maria added Sam's iPhone", "Sam's laptop was removed", "Server moved". Filter by machine. Export as CSV.
+
+### 9. Names for machines
+Decided by Dylan, 2026-10-30: machines find each other by name, the service provides it, it is on by default, the ending is fixed, and a machine can have extra names.
+- **There is no setup step for names.** They come with the setting "Machines can reach each other and find each other by name" (the existing reach setting, renamed). Names answer only while that setting is on, because while machines are kept apart they must not learn about each other.
+- **Add a device, step 3:** a live line under the name box: "Other machines will find it as `office-pc`." If that name is taken: "`office-pc` is taken, so it will be called `office-pc-2`."
+- **Device details:** "Name on the network: `office-pc`" with a Copy button. Renaming the machine changes it within seconds; the confirm text says the old name stops working. If the machine's own computer cannot use names, a calm line: "Names don't work on this computer yet. You can still reach it by its address."
+- **Advanced drawer on device details:** "Short name" (blank means follow the machine's name) and "Extra names" (a list, add and remove). Extra names are for moving a job between machines, for example `files` pointing at the PC that now holds the files.
+- **The ending (`.wardline.internal`) is fixed** and shown as plain text in Advanced on the network settings; it is not editable.
+- **The server is always `server`.** Names that machines cannot take: `server`, `localhost`, `wardline`.
+- **Phones using the WireGuard app** do not get names in this version; their page says so in one sentence and shows the address.
+- Names never appear in Activity as anything but a rename or extra-name change, in words ("Sam renamed Office PC to Back PC. Its name on the network is now `back-pc`.").
 
 ## Message style
 - Short sentences. Plain verbs. No exclamation marks, no jokes in errors.

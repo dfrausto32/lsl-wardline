@@ -15,8 +15,8 @@ Restart=on-failure
 RestartSec=3
 
 # Needs to create a network interface and flip the one kernel switch for relaying between devices.
-AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_OVERRIDE
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_NET_ADMIN CAP_DAC_OVERRIDE CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_OVERRIDE CAP_NET_BIND_SERVICE
 StateDirectory=wardline-control wardline-server
 StateDirectoryMode=0700
 NoNewPrivileges=yes

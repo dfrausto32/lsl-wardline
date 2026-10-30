@@ -67,6 +67,18 @@ chmod 0640 "$envfile.new"
 mv "$envfile.new" "$envfile"
 
 if [ "$role" = agent ]; then
+  # Let the service set this computer's name settings for its own interface, so machines can be reached by name.
+  # Both polkit formats are installed; the one this computer's polkit does not read is ignored.
+  if [ -d /etc/polkit-1/rules.d ] && [ -f "$here/wardline-names.rules" ]; then
+    install -m 0644 "$here/wardline-names.rules" /etc/polkit-1/rules.d/50-wardline-names.rules
+  fi
+  if [ -d /etc/polkit-1/localauthority ] && [ -f "$here/wardline-names.pkla" ]; then
+    install -d -m 0755 /etc/polkit-1/localauthority/50-local.d
+    install -m 0644 "$here/wardline-names.pkla" /etc/polkit-1/localauthority/50-local.d/50-wardline-names.pkla
+  fi
+fi
+
+if [ "$role" = agent ]; then
   # Set this computer up now, so a wrong or used-up code is reported here and not buried in a log.
   # The keys are made and kept on this computer, owned by the service's own user.
   state=/var/lib/wardline-agent

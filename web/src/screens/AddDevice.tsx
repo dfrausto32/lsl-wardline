@@ -58,6 +58,16 @@ export function AddDevice({ navigate }: { navigate: (to: string) => void }) {
 /** What to call it. Left empty, it is named after its kind, such as "Windows computer". */
 function NameStep({ platform, onPick, onBack }: { platform: Platform; onPick: (name: string) => void; onBack: () => void }) {
   const [value, setValue] = useState("");
+  const [preview, setPreview] = useState<{ short_name: string; wanted: string; numbered: boolean } | null>(null);
+  // Left empty, the machine is named after its kind, so that is what the line describes.
+  const effective = value.trim() || primary.platform[platform];
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => {
+      api.namePreview(effective).then((p) => live && setPreview(p)).catch(() => live && setPreview(null));
+    }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [effective]);
   function next(e: FormEvent) {
     e.preventDefault();
     onPick(value.trim());
@@ -69,6 +79,13 @@ function NameStep({ platform, onPick, onBack }: { platform: Platform; onPick: (n
       <Card>
         <form className="stack" onSubmit={next}>
           <Field label={a.nameLabel} help={a.nameHelp} placeholder={primary.platform[platform]} maxLength={60} autoFocus value={value} onChange={(e) => setValue(e.target.value)} />
+          {preview && (
+            <p className="note" role="status">
+              {preview.numbered
+                ? fmt(a.nameNumbered, { wanted: preview.wanted, name: preview.short_name })
+                : fmt(a.namePreview, { name: preview.short_name })}
+            </p>
+          )}
           <Button type="submit">{primary.common.continue}</Button>
           <Button type="button" variant="quiet" onClick={onBack}>{primary.common.back}</Button>
         </form>

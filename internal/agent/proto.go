@@ -45,6 +45,10 @@ type DesiredState struct {
 	// agent's own, a security refresh was completed or rolled back and the agent must follow it.
 	PublicKey  string     `json:"public_key"`
 	RefreshDue *time.Time `json:"refresh_due,omitempty"`
+	// NamesDomain and NamesServer tell the computer to ask the server for names ending in NamesDomain.
+	// Both are empty while names are off.
+	NamesDomain string `json:"names_domain,omitempty"`
+	NamesServer string `json:"names_server,omitempty"`
 }
 
 // RefreshRequest asks the control plane to start accepting a new key in place of the current one.
@@ -72,7 +76,15 @@ type Report struct {
 	RxBytes        int64     `json:"rx_bytes"`
 	TxBytes        int64     `json:"tx_bytes"`
 	Problem        string    `json:"problem,omitempty"`
+	// Names is "ok" when this computer is set to use the network's names, "unavailable" when it was asked to
+	// but cannot, and empty when names are off.
+	Names string `json:"names,omitempty"`
 }
+
+const (
+	NamesOK          = "ok"
+	NamesUnavailable = "unavailable"
+)
 
 // Sign signs the state with the control plane's key. It uses the same envelope as the server role.
 func Sign(priv ed25519.PrivateKey, st DesiredState) (gateway.Signed, error) {

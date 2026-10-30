@@ -65,8 +65,9 @@ func (s *Server) handleDeviceRename(w http.ResponseWriter, r *http.Request, admi
 		return
 	}
 	defer tx.Rollback()
-	var old, networkID string
-	if err := tx.QueryRowContext(ctx, `SELECT name, network_id FROM devices WHERE id=? AND status <> 'removed'`, id).Scan(&old, &networkID); err != nil {
+	var old, networkID, oldShort string
+	var custom bool
+	if err := tx.QueryRowContext(ctx, `SELECT name, network_id, COALESCE(short_name,''), short_name_custom FROM devices WHERE id=? AND status <> 'removed'`, id).Scan(&old, &networkID, &oldShort, &custom); err != nil {
 		s.fail(w, http.StatusNotFound, "That machine was not found. It may have been removed.")
 		return
 	}
@@ -81,8 +82,27 @@ func (s *Server) handleDeviceRename(w http.ResponseWriter, r *http.Request, admi
 			s.serverError(w, r, err)
 			return
 		}
+		sentence := audit.SentenceDeviceRenamed(old, name)
+		if !custom {
+			short, err := autoShortName(ctx, tx, networkID, id, name)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE devices SET short_name=? WHERE id=?`, short, id); err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			if short != oldShort {
+				sentence = audit.SentenceDeviceRenamedOnNetwork(old, name, short)
+			}
+		}
 		if err := s.d.Audit.Append(ctx, tx, audit.Event{Actor: email, Action: "device.renamed", SubjectType: "device", SubjectID: id,
-			PlainText: audit.SentenceDeviceRenamed(old, name)}); err != nil {
+			PlainText: sentence}); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if err := bumpVersion(ctx, tx); err != nil {
 			s.serverError(w, r, err)
 			return
 		}
@@ -96,5 +116,6 @@ func (s *Server) handleDeviceRename(w http.ResponseWriter, r *http.Request, admi
 		s.serverError(w, r, err)
 		return
 	}
+	s.hub.broadcast() // the server updates its names at once
 	s.json(w, http.StatusOK, s.view(ds[0]))
 }

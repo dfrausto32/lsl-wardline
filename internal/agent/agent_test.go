@@ -34,6 +34,8 @@ type fakeControl struct {
 	refreshDue *time.Time
 	endpoint   string
 
+	namesDomain, namesServer string // when set, the state tells the computer to use the network's names
+
 	enrolls   []EnrollRequest
 	refreshed []string
 	rollbacks int
@@ -74,6 +76,7 @@ func (c *fakeControl) state() DesiredState {
 		Version: c.version, IssuedAt: time.Now(), DeviceID: "dev1", Address: "10.77.5.2/24",
 		ServerPublicKey: c.serverPub, Endpoint: c.endpoint, AllowedIPs: []string{"10.77.5.0/24"},
 		PresharedKey: "", Keepalive: 25, PublicKey: c.current, RefreshDue: c.refreshDue,
+		NamesDomain: c.namesDomain, NamesServer: c.namesServer,
 	}
 }
 

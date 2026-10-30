@@ -1,9 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
-import { ApiError, api } from "../api";
+import { ApiError, Device, api } from "../api";
 import { exactTime, formatBytes, relativeTime } from "../format";
 import { messageOf, useLoad } from "../hooks";
 import { advanced, fmt, primary } from "../strings";
-import { Button, Card, ConfirmDialog, Field, PlatformIcon, StatusChip } from "../components/ui";
+import { Button, Card, ConfirmDialog, CopyBox, Field, PlatformIcon, StatusChip } from "../components/ui";
 
 const d = primary.device;
 
@@ -65,6 +65,15 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
 
       <RenameCard id={dev.id} name={dev.name} />
 
+      {dev.name_on_network && (
+        <Card className="stack">
+          <h2>{d.networkNameLabel}</h2>
+          <CopyBox text={dev.name_on_network} label={d.networkNameLabel} />
+          <p className="help">{d.networkNameHelp}</p>
+          {dev.agent?.names === "unavailable" && <p className="note">{d.namesUnavailable}</p>}
+        </Card>
+      )}
+
       {dev.agent?.problem && (
         <Card className="soft">
           <h2>{primary.home.problemTitle.replace("{name}", dev.name)}</h2>
@@ -96,6 +105,7 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
             {dev.agent?.version && <div><dt>{advanced.agentVersion}</dt><dd>{dev.agent.version}</dd></div>}
             {adv.last_address_seen && <div><dt>{advanced.lastEndpoint}</dt><dd>{adv.last_address_seen}</dd></div>}
           </dl>
+          <NamesEditor dev={dev} />
         </details>
       )}
 
@@ -136,12 +146,53 @@ function RenameCard({ id, name }: { id: string; name: string }) {
   return (
     <Card>
       <form className="stack" onSubmit={save}>
-        <Field label={d.renameLabel} maxLength={60} value={value} onChange={(e) => setValue(e.target.value)} error={note && !note.ok ? note.text : null} />
+        <Field label={d.renameLabel} maxLength={60} value={value} onChange={(e) => setValue(e.target.value)} help={d.renameNamesNote} error={note && !note.ok ? note.text : null} />
         <div className="actions">
           <Button type="submit" variant="secondary" busy={busy} disabled={value.trim() === "" || value.trim() === name}>{d.renameSave}</Button>
         </div>
         {note?.ok && <p className="note" role="status">{note.text}</p>}
       </form>
     </Card>
+  );
+}
+
+/** Advanced: set the short name by hand, and give the machine extra names. */
+function NamesEditor({ dev }: { dev: Device }) {
+  const n = primary.deviceNames;
+  const [shortName, setShortName] = useState(dev.short_name_custom ? dev.short_name ?? "" : "");
+  const [extra, setExtra] = useState((dev.aliases ?? []).join(", "));
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  // Follow the server only when the person is not in the middle of typing.
+  const saved = `${dev.short_name_custom ? dev.short_name : ""}|${(dev.aliases ?? []).join(",")}`;
+  useEffect(() => {
+    setShortName(dev.short_name_custom ? dev.short_name ?? "" : "");
+    setExtra((dev.aliases ?? []).join(", "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dev.id, saved]);
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setNote(null);
+    try {
+      const aliases = extra.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      await api.setDeviceNames(dev.id, { short_name: shortName.trim().toLowerCase(), aliases });
+      setNote({ ok: true, text: n.saved });
+    } catch (err) {
+      setNote({ ok: false, text: messageOf(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <form className="stack" style={{ marginTop: "1.5rem" }} onSubmit={save} aria-label={n.heading}>
+      <h3>{n.heading}</h3>
+      <Field label={n.shortName} help={n.shortNameHelp} placeholder={dev.short_name} maxLength={63} value={shortName} onChange={(e) => setShortName(e.target.value)} />
+      <Field label={n.extraNames} help={n.extraNamesHelp} value={extra} onChange={(e) => setExtra(e.target.value)} error={note && !note.ok ? note.text : null} />
+      <div className="actions">
+        <Button type="submit" variant="secondary" busy={busy}>{n.save}</Button>
+      </div>
+      {note?.ok && <p className="note" role="status">{note.text}</p>}
+    </form>
   );
 }

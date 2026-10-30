@@ -15,6 +15,7 @@ import (
 
 	"lsl-wardline/internal/audit"
 	"lsl-wardline/internal/gateway"
+	"lsl-wardline/internal/names"
 	"lsl-wardline/internal/store"
 	"lsl-wardline/internal/wg"
 )
@@ -298,7 +299,18 @@ func (s *Server) buildState(ctx context.Context, serverID string, version int64)
 		}
 		st.Peers = append(st.Peers, p)
 	}
-	return st, rows.Err()
+	if err := rows.Err(); err != nil {
+		return st, err
+	}
+	rows.Close()
+	if n.Reach { // names answer only while machines can reach each other
+		recs, err := s.nameRecords(ctx, sip.String())
+		if err != nil {
+			return st, err
+		}
+		st.NamesDomain, st.Names = names.Domain, recs
+	}
+	return st, nil
 }
 
 func (s *Server) handleGatewayReport(w http.ResponseWriter, r *http.Request, serverID string) {

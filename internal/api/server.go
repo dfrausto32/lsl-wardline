@@ -81,6 +81,10 @@ func New(d Deps) *Server {
 		hub:      newHub(),
 	}
 	s.routes()
+	// Machines made before names existed get theirs from their current names.
+	if err := s.backfillShortNames(context.Background()); err != nil && d.Log != nil {
+		d.Log.Error("could not give existing machines their names", "error", err.Error())
+	}
 	return s
 }
 
@@ -142,6 +146,8 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/devices/{id}", s.admin(s.handleDevice))
 	m.HandleFunc("DELETE /api/devices/{id}", s.admin(s.handleDeviceRemove))
 	m.HandleFunc("PATCH /api/devices/{id}", s.admin(s.handleDeviceRename))
+	m.HandleFunc("PUT /api/devices/{id}/names", s.admin(s.handleDeviceNames))
+	m.HandleFunc("GET /api/names/preview", s.admin(s.handleNamePreview))
 	m.HandleFunc("GET /api/activity", s.admin(s.handleActivity))
 	m.HandleFunc("GET /api/activity.csv", s.admin(s.handleActivityCSV))
 	// Servers

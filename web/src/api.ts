@@ -31,7 +31,11 @@ export interface Device {
   last_seen_at: string | null;
   added_at: string;
   refresh_due: boolean;
-  agent?: { version: string; problem: string; reported_at: string | null };
+  agent?: { version: string; problem: string; reported_at: string | null; names?: "ok" | "unavailable" | "" };
+  short_name?: string;
+  short_name_custom?: boolean;
+  aliases?: string[];
+  name_on_network?: string;
   advanced?: {
     public_key: string;
     address: string;
@@ -159,6 +163,9 @@ export const api = {
   addDevice: (b: { platform: Platform; name?: string }) => request<AddedDevice>("POST", "/api/devices", b),
   addAgentDevice: (b: { platform: Platform; name?: string }) => request<AddedAgentDevice>("POST", "/api/devices", { ...b, agent: true }),
   renameDevice: (id: string, name: string) => request<Device>("PATCH", `/api/devices/${id}`, { name }),
+  setDeviceNames: (id: string, b: { short_name: string; aliases: string[] }) => request<Device>("PUT", `/api/devices/${id}/names`, b),
+  namePreview: (name: string) =>
+    request<{ short_name: string; name_on_network: string; wanted: string; numbered: boolean }>("GET", `/api/names/preview?name=${encodeURIComponent(name)}`),
   removeDevice: (id: string) => request<object>("DELETE", `/api/devices/${id}`),
   activity: (f: { person_id?: string; device_id?: string } = {}) => {
     const q = new URLSearchParams();

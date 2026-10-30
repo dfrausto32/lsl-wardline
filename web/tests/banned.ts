@@ -3,6 +3,7 @@ export const BANNED: string[] = [
   "peer", "peers", "node", "nodes", "client", "clients",
   "gateway", "hub", "endpoint", "endpoints", "host:port",
   "vpn", "tunnel", "tunnels", "interface", "interfaces",
+  "dns", "hostname", "fqdn",
   "handshake", "handshakes", "stale",
   "revoke", "revoked", "rotate", "rotates", "rotating", "rotate keys",
   "migrate", "migrating", "migration",

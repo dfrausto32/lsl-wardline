@@ -17,3 +17,8 @@ Times are UTC, stored as RFC 3339 text. IDs are ULIDs as text. No private key co
 - **settings**: key, value (non-secret app settings)
 
 Indexes: unique (network_id, name) on devices, unique (network_id, tunnel_ip) on allocated addresses, unique public_key across active device keys.
+
+## Names for machines (added 2026-10-30, migration 0010)
+- **devices**: `short_name` (lowercase name made from `name`, unique per network among machines that are not removed), `short_name_custom` (0/1, default 0: 1 when the person set it by hand).
+- **device_aliases**: id, device_id, network_id, name (unique per network), created_at. Deleted with the machine's names when it is removed.
+- No setting of its own: names answer exactly when `networks.devices_reach_each_other` is 1.

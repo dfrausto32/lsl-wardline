@@ -45,7 +45,18 @@ $sums = Get-ChildItem $out -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" }
 }
 [System.IO.File]::WriteAllText((Join-Path (Resolve-Path $out) "SHA256SUMS.txt"), (($sums -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
 
+# Servers that update themselves install a release only if SHA256SUMS.txt is signed with the owner's key.
+# The private key lives on this computer only (see docs/AUTO-UPDATE.md), never in the repository.
+$keyDir = if ($env:WARDLINE_SIGNING_DIR) { $env:WARDLINE_SIGNING_DIR } else { Join-Path $env:USERPROFILE ".wardline-signing" }
+if (Test-Path (Join-Path $keyDir "release.key")) {
+    docker compose -f compose.dev.yaml run --rm -v "${keyDir}:/keys:ro" dev go run ./tools/sign sign /keys/release.key dist/release/SHA256SUMS.txt
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Write-Host "Signed SHA256SUMS.txt (SHA256SUMS.txt.sig). Publish this file with the others."
+} else {
+    Write-Warning "No signing key at $keyDir. This release is NOT signed, so servers that update themselves will ignore it."
+}
+
 Get-ChildItem $out | Format-Table Name, Length
 Write-Host "Version: $Version"
 Write-Host "To publish once the GitHub repository exists:"
-Write-Host "  gh release create $Version dist/release/* --title `"Wardline $Version`" --notes `"See docs/INSTALL.md`""
+Write-Host "  gh release create $Version (every file in dist/release, including SHA256SUMS.txt.sig) --title `"Wardline $Version`" --notes `"See docs/INSTALL.md`""

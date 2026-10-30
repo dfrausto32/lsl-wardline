@@ -106,9 +106,6 @@ func serveControl(ctx context.Context, o *controlOpts) error {
 			return res
 		}
 		go keeper.run(ctx)
-		dns := newDDNSUpdater(st.DB(), box)
-		deps.DynamicDNSChanged = dns.nudge
-		go dns.run(ctx)
 	}
 	srv := api.New(deps)
 	hs := &http.Server{Addr: listen, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}

@@ -59,8 +59,14 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		NetworkName string `json:"network_name"`
 		Email       string `json:"email"`
 		Password    string `json:"password"`
+		GroupMode   string `json:"group_mode"`
 	}
 	if !s.decode(w, r, &in) {
+		return
+	}
+	// "managed" is the only kind of group built so far; leaving it out means managed.
+	if in.GroupMode != "" && in.GroupMode != "managed" {
+		s.fail(w, http.StatusBadRequest, "Open groups are not available yet. Choose a managed group.")
 		return
 	}
 	in.NetworkName = strings.TrimSpace(in.NetworkName)
@@ -227,7 +233,7 @@ func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request, _ string)
 		return
 	}
 	s.json(w, http.StatusOK, map[string]any{"id": n.ID, "name": n.Name, "server_address": n.ServerAddress,
-		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "devices_reach_each_other": n.Reach, "names_active": n.Reach, "names_domain": names.Domain, "local_server": s.d.OnServerCreated != nil, "router_step": s.d.OpenRouterPort != nil, "advanced": map[string]string{"address_range": n.Range}})
+		"server_address_kind": n.Kind, "suggested_address": s.suggestedAddress(), "group_mode": "managed", "devices_reach_each_other": n.Reach, "names_active": n.Reach, "names_domain": names.Domain, "local_server": s.d.OnServerCreated != nil, "router_step": s.d.OpenRouterPort != nil, "advanced": map[string]string{"address_range": n.Range}})
 }
 
 var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$`)

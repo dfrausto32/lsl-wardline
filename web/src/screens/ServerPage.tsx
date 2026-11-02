@@ -1,9 +1,10 @@
 import { api } from "../api";
 import { useLoad } from "../hooks";
-import { primary } from "../strings";
+import { advanced, primary } from "../strings";
 import { Button, Card, LiveStatus } from "../components/ui";
 import { AddressStep, CommandStep } from "./ServerSteps";
 import { ReachCard } from "./ReachCard";
+import { EdgeKeys } from "./EdgeKeys";
 
 /** Reached from Home when the server still needs setting up or is not responding. */
 export function ServerPage({ navigate }: { navigate: (to: string) => void }) {
@@ -33,6 +34,12 @@ export function ServerPage({ navigate }: { navigate: (to: string) => void }) {
         )}
       </Card>
       {net.server_address && status === "online" && <ReachCard initial={!!net.devices_reach_each_other} />}
+      {net.server_address && status === "online" && (
+        <details className="advanced">
+          <summary>{advanced.heading}</summary>
+          <EdgeKeys />
+        </details>
+      )}
     </div>
   );
 }

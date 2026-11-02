@@ -18,7 +18,7 @@ export default defineConfig({
     trace: "off",
   },
   projects: [
-    { name: "setup", testMatch: "setup.spec.ts" },
-    { name: "flows", testIgnore: "setup.spec.ts", dependencies: ["setup"] },
+    { name: "setup", testMatch: ["group-mode.spec.ts", "setup.spec.ts"] },
+    { name: "flows", testIgnore: ["setup.spec.ts", "group-mode.spec.ts"], dependencies: ["setup"] },
   ],
 });

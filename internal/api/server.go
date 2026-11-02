@@ -60,6 +60,11 @@ type Server struct {
 	limiter  *auth.Limiter
 	hub      *hub
 	pending  sync.Map // admin id -> pending TOTP secret (not stored until confirmed)
+
+	// The read-only API for the Edge: one change-finder at a time, how often a stream looks for changes, and how often it says it is still there.
+	edgeMu        sync.Mutex
+	edgePoll      time.Duration
+	edgeHeartbeat time.Duration
 }
 
 func New(d Deps) *Server {
@@ -79,6 +84,7 @@ func New(d Deps) *Server {
 		sessions: &auth.Sessions{DB: d.Store.DB(), TTL: d.SessionTTL, Now: d.Now},
 		limiter:  &auth.Limiter{Max: 5, Window: 15 * time.Minute, Now: d.Now},
 		hub:      newHub(),
+		edgePoll: 2 * time.Second, edgeHeartbeat: 25 * time.Second,
 	}
 	s.routes()
 	// Machines made before names existed get theirs from their current names.
@@ -151,6 +157,12 @@ func (s *Server) routes() {
 	m.HandleFunc("PATCH /api/devices/{id}", s.admin(s.handleDeviceRename))
 	m.HandleFunc("PUT /api/devices/{id}/names", s.admin(s.handleDeviceNames))
 	m.HandleFunc("GET /api/names/preview", s.admin(s.handleNamePreview))
+	m.HandleFunc("PUT /api/devices/{id}/labels", s.admin(s.handleDeviceLabels))
+	m.HandleFunc("POST /api/tokens", s.admin(s.handleTokenCreate))
+	m.HandleFunc("GET /api/tokens", s.admin(s.handleTokens))
+	m.HandleFunc("DELETE /api/tokens/{id}", s.admin(s.handleTokenRevoke))
+	m.HandleFunc("GET /api/v1/edge/members", s.edgeAuth(s.handleEdgeMembers))
+	m.HandleFunc("GET /api/v1/edge/events", s.edgeAuth(s.handleEdgeEvents))
 	m.HandleFunc("GET /api/activity", s.admin(s.handleActivity))
 	m.HandleFunc("GET /api/activity.csv", s.admin(s.handleActivityCSV))
 	// Servers

@@ -142,7 +142,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
   state: () => request<AppState>("GET", "/api/state"),
-  setup: (b: { network_name: string; email: string; password: string }) => request<{ email: string }>("POST", "/api/setup", b),
+  setup: (b: { network_name: string; email: string; password: string; group_mode?: "managed" }) => request<{ email: string }>("POST", "/api/setup", b),
   login: (b: { email: string; password: string; code?: string }) =>
     request<{ need_code?: boolean; email?: string }>("POST", "/api/session", b),
   logout: () => request<object>("DELETE", "/api/session"),
@@ -163,6 +163,9 @@ export const api = {
   addDevice: (b: { platform: Platform; name?: string }) => request<AddedDevice>("POST", "/api/devices", b),
   addAgentDevice: (b: { platform: Platform; name?: string }) => request<AddedAgentDevice>("POST", "/api/devices", { ...b, agent: true }),
   renameDevice: (id: string, name: string) => request<Device>("PATCH", `/api/devices/${id}`, { name }),
+  tokens: () => request<{ id: string; name: string; scope: string; created_at: string; last_used_at: string | null }[]>("GET", "/api/tokens"),
+  createToken: (name: string) => request<{ id: string; name: string; scope: string; token: string }>("POST", "/api/tokens", { name }),
+  revokeToken: (id: string) => request<object>("DELETE", `/api/tokens/${id}`),
   setDeviceNames: (id: string, b: { short_name: string; aliases: string[] }) => request<Device>("PUT", `/api/devices/${id}/names`, b),
   namePreview: (name: string) =>
     request<{ short_name: string; name_on_network: string; wanted: string; numbered: boolean }>("GET", `/api/names/preview?name=${encodeURIComponent(name)}`),

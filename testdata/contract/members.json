@@ -1,0 +1,18 @@
+{
+  "version": "v1",
+  "group_id": "string",
+  "generated_at": "2026-10-29T12:00:00Z",
+  "cursor": "opaque-string",
+  "members": [
+    {
+      "id": "string",
+      "name": "Front desk tablet",
+      "hostname_label": "front-desk",
+      "overlay_address": "fd12:3456:789a::1",
+      "roles": ["gateway", "relay"],
+      "status": "connected",
+      "last_seen_at": "2026-10-29T11:59:30Z",
+      "labels": { "edge.upstream_port": "8080", "edge.scheme": "http" }
+    }
+  ]
+}

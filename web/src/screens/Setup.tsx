@@ -28,7 +28,7 @@ export function Setup({ state, onStateChange, onFinish }: { state: AppState; onS
     setBusy(true);
     setError(null);
     try {
-      await api.setup({ network_name: networkName, email, password });
+      await api.setup({ network_name: networkName, email, password, group_mode: "managed" });
       await onStateChange();
       setStep("twostep");
     } catch (err) {
@@ -75,6 +75,17 @@ export function Setup({ state, onStateChange, onFinish }: { state: AppState; onS
           <Card>
             <form className="stack" onSubmit={(e) => { e.preventDefault(); setStep("signin"); }}>
               <Field label={s.nameLabel} help={s.nameHelp} required maxLength={60} value={networkName} onChange={(e) => setNetworkName(e.target.value)} />
+              <div role="radiogroup" aria-label={s.modeQuestion} className="stack">
+                <p className="lead">{s.modeQuestion}</p>
+                <label className="check">
+                  <input type="radio" name="group-mode" checked readOnly />
+                  <span><strong>{s.modeManaged}</strong><br /><span className="help">{s.modeManagedHelp}</span></span>
+                </label>
+                <label className="check">
+                  <input type="radio" name="group-mode" disabled />
+                  <span><strong>{s.modeOpen}</strong><br /><span className="help">{s.modeOpenHelp}</span><br /><span className="help">{s.modeOpenSoon}</span></span>
+                </label>
+              </div>
               <Button type="submit">{primary.common.continue}</Button>
             </form>
           </Card>

@@ -63,6 +63,19 @@ func SentenceDeviceRenamedOnNetwork(old, name, short string) string {
 	return fmt.Sprintf("%s was renamed to %s. Its name on the network is now %s.", old, name, short)
 }
 
+// SentenceTokenCreated is written when a read-only key for the Edge is made. The key itself is never written.
+func SentenceTokenCreated(actor, name string) string {
+	return fmt.Sprintf("%s made a read-only key for the Edge called %s.", actor, name)
+}
+
+func SentenceTokenRevoked(actor, name string) string {
+	return fmt.Sprintf("%s removed the Edge key called %s. It stops working at once.", actor, name)
+}
+
+func SentenceDeviceLabels(actor, device string) string {
+	return fmt.Sprintf("%s changed the labels on %s.", actor, device)
+}
+
 // SentenceDeviceNames says what a machine is called on the network after its names were changed by hand.
 func SentenceDeviceNames(actor, device, short string, aliases []string) string {
 	s := fmt.Sprintf("%s changed the names for %s. Its name on the network is %s", actor, device, short)

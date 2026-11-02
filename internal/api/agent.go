@@ -121,6 +121,10 @@ func (s *Server) createAgentDevice(w http.ResponseWriter, r *http.Request, admin
 		s.serverError(w, r, err)
 		return
 	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	if err := tx.Commit(); err != nil {
 		s.serverError(w, r, err)
 		return
@@ -202,6 +206,10 @@ func (s *Server) handleAgentEnroll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := bumpVersion(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

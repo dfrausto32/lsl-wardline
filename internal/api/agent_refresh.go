@@ -76,6 +76,10 @@ func (s *Server) handleAgentRefresh(w http.ResponseWriter, r *http.Request, devi
 		s.serverError(w, r, err)
 		return
 	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	if err := tx.Commit(); err != nil {
 		s.serverError(w, r, err)
 		return
@@ -131,6 +135,10 @@ func (s *Server) handleAgentRollback(w http.ResponseWriter, r *http.Request, dev
 		return
 	}
 	if err := bumpVersion(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

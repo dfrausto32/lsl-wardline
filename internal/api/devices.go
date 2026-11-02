@@ -468,6 +468,10 @@ func (s *Server) handleDeviceCreate(w http.ResponseWriter, r *http.Request, admi
 		s.serverError(w, r, err)
 		return
 	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	if err := tx.Commit(); err != nil {
 		s.serverError(w, r, err)
 		return
@@ -531,6 +535,10 @@ func (s *Server) handleDeviceRemove(w http.ResponseWriter, r *http.Request, admi
 		return
 	}
 	if err := bumpVersion(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

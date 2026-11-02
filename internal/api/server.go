@@ -85,6 +85,9 @@ func New(d Deps) *Server {
 	if err := s.backfillShortNames(context.Background()); err != nil && d.Log != nil {
 		d.Log.Error("could not give existing machines their names", "error", err.Error())
 	}
+	if err := s.backfillGroup(context.Background()); err != nil && d.Log != nil {
+		d.Log.Error("could not start the membership record for this network", "error", err.Error())
+	}
 	return s
 }
 

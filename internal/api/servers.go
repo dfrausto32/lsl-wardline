@@ -212,6 +212,10 @@ func (s *Server) handleGatewayEnroll(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	if err := s.reconcileGroup(ctx, tx); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	if err := tx.Commit(); err != nil {
 		s.serverError(w, r, err)
 		return

@@ -156,6 +156,7 @@ func (s *Server) routes() {
 	m.HandleFunc("DELETE /api/devices/{id}", s.admin(s.handleDeviceRemove))
 	m.HandleFunc("PATCH /api/devices/{id}", s.admin(s.handleDeviceRename))
 	m.HandleFunc("PUT /api/devices/{id}/names", s.admin(s.handleDeviceNames))
+	m.HandleFunc("PUT /api/devices/{id}/reach-all", s.admin(s.handleDeviceReachAll))
 	m.HandleFunc("GET /api/names/preview", s.admin(s.handleNamePreview))
 	m.HandleFunc("PUT /api/devices/{id}/labels", s.admin(s.handleDeviceLabels))
 	m.HandleFunc("POST /api/tokens", s.admin(s.handleTokenCreate))

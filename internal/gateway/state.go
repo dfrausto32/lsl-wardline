@@ -34,6 +34,9 @@ type DesiredState struct {
 	Peers      []DesiredPeer `json:"peers"`
 	// DevicesReachEachOther is the network setting: when true the server relays traffic from one device to another.
 	DevicesReachEachOther bool `json:"devices_reach_each_other"`
+	// ReachAll holds the tunnel addresses of the machines that may reach every other machine and be reached by every other machine,
+	// while DevicesReachEachOther is off. Empty means none.
+	ReachAll []string `json:"reach_all,omitempty"`
 	// NamesDomain and Names are what the server's name service answers. Both are empty while devices are kept apart.
 	NamesDomain string       `json:"names_domain,omitempty"`
 	Names       []NameRecord `json:"names,omitempty"`

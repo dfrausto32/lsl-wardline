@@ -34,6 +34,7 @@ export interface Device {
   agent?: { version: string; problem: string; reported_at: string | null; names?: "ok" | "unavailable" | "" };
   short_name?: string;
   short_name_custom?: boolean;
+  can_reach_all?: boolean;
   aliases?: string[];
   name_on_network?: string;
   advanced?: {
@@ -166,6 +167,7 @@ export const api = {
   tokens: () => request<{ id: string; name: string; scope: string; created_at: string; last_used_at: string | null }[]>("GET", "/api/tokens"),
   createToken: (name: string) => request<{ id: string; name: string; scope: string; token: string }>("POST", "/api/tokens", { name }),
   revokeToken: (id: string) => request<object>("DELETE", `/api/tokens/${id}`),
+  setDeviceReachAll: (id: string, enabled: boolean) => request<{ can_reach_all: boolean }>("PUT", `/api/devices/${id}/reach-all`, { enabled }),
   setDeviceNames: (id: string, b: { short_name: string; aliases: string[] }) => request<Device>("PUT", `/api/devices/${id}/names`, b),
   namePreview: (name: string) =>
     request<{ short_name: string; name_on_network: string; wanted: string; numbered: boolean }>("GET", `/api/names/preview?name=${encodeURIComponent(name)}`),

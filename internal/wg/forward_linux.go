@@ -18,12 +18,13 @@ import (
 // device-to-device relaying when on. The host's own per-interface switch is also set, which relaying
 // needs on a host that does not already relay. Containers usually cannot change that switch, so when
 // it cannot be written it is only an error if relaying is wanted and the switch is not already on.
-func platformForwarding(ctx context.Context, iface string, enabled bool) error {
+func platformRelay(ctx context.Context, iface string, p RelayPolicy) error {
+	enabled := p.All || len(p.ReachAll) > 0 // the host's switch must be on for any relaying; the rules decide whose
 	path, err := forwardingPath(iface)
 	if err != nil {
 		return err
 	}
-	rules, err := nftRules(iface, enabled)
+	rules, err := nftRulesFor(iface, p)
 	if err != nil {
 		return err
 	}

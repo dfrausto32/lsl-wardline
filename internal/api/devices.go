@@ -122,7 +122,7 @@ type deviceRow struct {
 	AgentVersion, AgentProblem                             string
 	AgentReported, RefreshFailed                           *time.Time
 	ShortName, AgentNames                                  string
-	ShortCustom                                            bool
+	ShortCustom, CanReachAll                               bool
 	Aliases                                                []string
 }
 
@@ -130,7 +130,7 @@ func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]
 	rows, err := s.d.Store.DB().QueryContext(ctx, `SELECT d.id, d.person_id, p.display_name, d.name, d.platform, d.kind, d.status, d.tunnel_ip,
 		COALESCE(k.public_key,''), COALESCE(d.last_endpoint,''), d.added_at, d.last_seen_at, d.refresh_due_at, d.rx_bytes, d.tx_bytes,
 		COALESCE(d.agent_version,''), COALESCE(d.agent_problem,''), d.agent_reported_at, d.refresh_failed_at,
-		COALESCE(d.short_name,''), d.short_name_custom, COALESCE(d.agent_names,'')
+		COALESCE(d.short_name,''), d.short_name_custom, COALESCE(d.agent_names,''), d.can_reach_all
 		FROM devices d JOIN people p ON p.id=d.person_id LEFT JOIN device_keys k ON k.device_id=d.id AND k.state='active'
 		WHERE d.status <> 'removed' `+where+` ORDER BY d.added_at, d.id`, args...)
 	if err != nil {
@@ -143,7 +143,7 @@ func (s *Server) loadDevices(ctx context.Context, where string, args ...any) ([]
 		var added string
 		var seen, due, reported, failed sql.NullString
 		if err := rows.Scan(&d.ID, &d.PersonID, &d.PersonName, &d.Name, &d.Platform, &d.Kind, &d.Status, &d.TunnelIP, &d.PublicKey, &d.Endpoint,
-			&added, &seen, &due, &d.Rx, &d.Tx, &d.AgentVersion, &d.AgentProblem, &reported, &failed, &d.ShortName, &d.ShortCustom, &d.AgentNames); err != nil {
+			&added, &seen, &due, &d.Rx, &d.Tx, &d.AgentVersion, &d.AgentProblem, &reported, &failed, &d.ShortName, &d.ShortCustom, &d.AgentNames, &d.CanReachAll); err != nil {
 			return nil, err
 		}
 		d.Added, _ = time.Parse(time.RFC3339, added)
@@ -221,7 +221,7 @@ func (s *Server) view(d deviceRow) map[string]any {
 		"status": s.displayStatus(d), "last_seen_at": d.Seen, "added_at": d.Added,
 		// Only phones and computers set up by hand need a person to refresh them; agents do it themselves.
 		"refresh_due": d.Kind == "manual" && d.RefreshDue != nil && !s.now().Before(*d.RefreshDue),
-		"short_name":  d.ShortName, "short_name_custom": d.ShortCustom, "aliases": append([]string{}, d.Aliases...),
+		"short_name":  d.ShortName, "short_name_custom": d.ShortCustom, "aliases": append([]string{}, d.Aliases...), "can_reach_all": d.CanReachAll,
 	}
 	if d.ShortName != "" {
 		v["name_on_network"] = names.Full(d.ShortName)

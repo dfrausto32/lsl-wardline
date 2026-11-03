@@ -52,3 +52,6 @@ Phase 2 is done when the agent items in `specs/ACCEPTANCE.md` pass (to be added 
 
 ### Phase 2 status (2026-10-28)
 2.0 to 2.9 are built and committed; tests pass in the container and the lab. Not done and needing Dylan: the Windows pieces have not run on Windows (manual check M6), and publishing to GitHub Releases waits for a repository. Details and every deviation from the specs are in `BLOCKED.md` ("Phase 2 spec notes"). Phase 3 is deferred indefinitely.
+
+### Task 6.9: reach-all permission (added 2026-11-03 at Dylan's request)
+A per-machine permission, off by default, so the Edge machine can reach every node while the nodes stay isolated from each other. Two-way, any number of machines, hub-and-spoke still. Rules in `specs/BUSINESS-RULES.md`; table row in `specs/MEMBERSHIP-AND-MODES.md`. The network-wide switch stays as the stopgap.

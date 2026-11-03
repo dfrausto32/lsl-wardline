@@ -43,6 +43,13 @@ func SentenceNameRemoved(actor, name string) string {
 	return fmt.Sprintf("%s stopped Wardline keeping %s pointed at this computer.", actor, name)
 }
 
+func SentenceReachAllChanged(actor, device string, on bool) string {
+	if on {
+		return fmt.Sprintf("%s let %s reach every other machine, and every other machine reach it.", actor, device)
+	}
+	return fmt.Sprintf("%s said %s can no longer reach every other machine.", actor, device)
+}
+
 func SentenceDeviceSetUp(device string) string {
 	return fmt.Sprintf("%s was set up and is ready to connect.", device)
 }

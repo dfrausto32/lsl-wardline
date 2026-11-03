@@ -7,6 +7,6 @@ import (
 	"errors"
 )
 
-func platformForwarding(context.Context, string, bool) error {
+func platformRelay(context.Context, string, RelayPolicy) error {
 	return errors.New("relaying between devices is not supported on this system yet")
 }

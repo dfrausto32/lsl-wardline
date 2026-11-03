@@ -121,6 +121,33 @@ func agentSteps(t *testing.T, l *lab, serverTunnelIP string) {
 	l.eventually("names to stop answering with the setting off", 40*time.Second, func() bool { return lookup(full) != other.Advanced.Address })
 	t.Log("with the setting off, no name is answered")
 
+	// Reach-all permission (task 6.9): with the network setting off, one machine holding the permission reaches the other
+	// and is reached by it, through the real server's firewall. Taking the permission away isolates them again.
+	var first struct {
+		Advanced struct {
+			Address string `json:"address"`
+		} `json:"advanced"`
+	}
+	l.must("GET", "/api/devices/"+devs[0].id, nil, &first, 200)
+	l.writeFile("agent-2.peer", first.Advanced.Address+"\n")
+	l.must("PUT", "/api/devices/"+devs[0].id+"/reach-all", map[string]bool{"enabled": true}, nil, 200)
+	l.eventually("agent-1, holding the permission, to reach agent-2", 40*time.Second, func() bool {
+		ts, ok := l.lastFile("agent-1.peerok")
+		return ok && time.Since(ts) < 4*time.Second
+	})
+	l.eventually("agent-2 to reach agent-1, the machine holding the permission", 40*time.Second, func() bool {
+		ts, ok := l.lastFile("agent-2.peerok")
+		return ok && time.Since(ts) < 4*time.Second
+	})
+	t.Log("with the setting off, a machine with the permission reached another and was reached by it")
+	l.must("PUT", "/api/devices/"+devs[0].id+"/reach-all", map[string]bool{"enabled": false}, nil, 200)
+	l.eventually("the two to be isolated again once the permission is gone", 40*time.Second, func() bool {
+		a, aok := l.lastFile("agent-1.peerok")
+		b, bok := l.lastFile("agent-2.peerok")
+		return aok && bok && time.Since(a) >= 5*time.Second && time.Since(b) >= 5*time.Second
+	})
+	t.Log("taking the permission away isolated them again")
+
 	// Removing access: traffic stops, and the computer deletes its tunnel and keys by itself.
 	removedAt := time.Now()
 	l.must("DELETE", "/api/devices/"+devs[1].id, nil, nil, 200)

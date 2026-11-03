@@ -3,6 +3,7 @@ package wg
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"sort"
 	"sync"
 	"time"
@@ -13,7 +14,7 @@ import (
 type Fake struct {
 	mu     sync.Mutex
 	ifaces map[string]*fakeIface
-	fwd    map[string]bool
+	relay  map[string]RelayPolicy
 	Now    func() time.Time
 }
 
@@ -118,20 +119,40 @@ func (f *Fake) Interface(name string) (InterfaceConfig, bool) {
 }
 
 // SetForwarding records whether the pretend server relays between devices.
-func (f *Fake) SetForwarding(_ context.Context, name string, enabled bool) error {
+func (f *Fake) SetForwarding(ctx context.Context, name string, enabled bool) error {
+	return f.SetRelay(ctx, name, RelayPolicy{All: enabled})
+}
+
+// SetRelay records who the pretend server relays for. The list is kept sorted, without repeats.
+func (f *Fake) SetRelay(_ context.Context, name string, p RelayPolicy) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.fwd == nil {
-		f.fwd = map[string]bool{}
+	if f.relay == nil {
+		f.relay = map[string]RelayPolicy{}
 	}
-	f.fwd[name] = enabled
+	seen := map[netip.Addr]bool{}
+	var list []netip.Addr
+	for _, a := range p.ReachAll {
+		if !seen[a] {
+			seen[a] = true
+			list = append(list, a)
+		}
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].Less(list[j]) })
+	f.relay[name] = RelayPolicy{All: p.All, ReachAll: list}
 	return nil
 }
 
-// Forwarding reports what SetForwarding last set, and whether it was ever set.
-func (f *Fake) Forwarding(name string) (on, set bool) {
+// Relay reports what SetRelay (or SetForwarding) last set, and whether it was ever set.
+func (f *Fake) Relay(name string) (p RelayPolicy, set bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	on, set = f.fwd[name]
-	return on, set
+	p, set = f.relay[name]
+	return p, set
+}
+
+// Forwarding reports whether the pretend server relays at all, for everybody or for some machines, and whether it was ever set.
+func (f *Fake) Forwarding(name string) (on, set bool) {
+	p, set := f.Relay(name)
+	return p.All || len(p.ReachAll) > 0, set
 }

@@ -162,6 +162,14 @@ func (g *Gateway) apply(ctx context.Context, st DesiredState) (wg.Diff, error) {
 	if err != nil {
 		return wg.Diff{}, fmt.Errorf("the control plane sent an invalid address: %w", err)
 	}
+	var reachAll []netip.Addr
+	for _, s := range st.ReachAll {
+		a, err := netip.ParseAddr(s)
+		if err != nil || !a.Is4() {
+			return wg.Diff{}, fmt.Errorf("the control plane sent an invalid address for a machine that may reach the others: %q", s)
+		}
+		reachAll = append(reachAll, a)
+	}
 	var desired []wg.PeerConfig
 	devices := map[string]string{}
 	for _, p := range st.Peers {
@@ -186,7 +194,13 @@ func (g *Gateway) apply(ctx context.Context, st DesiredState) (wg.Diff, error) {
 	g.devices = devices
 	if f, ok := g.cfg.Backend.(wg.Forwarder); ok {
 		// Always set explicitly, so a host that already relays (such as one running containers) cannot leave devices reaching each other when the setting is off.
-		if err := f.SetForwarding(ctx, g.cfg.Iface, st.DevicesReachEachOther); err != nil {
+		var err error
+		if r, ok := g.cfg.Backend.(wg.RelayForwarder); ok {
+			err = r.SetRelay(ctx, g.cfg.Iface, wg.RelayPolicy{All: st.DevicesReachEachOther, ReachAll: reachAll})
+		} else {
+			err = f.SetForwarding(ctx, g.cfg.Iface, st.DevicesReachEachOther)
+		}
+		if err != nil {
 			g.cfg.Log.Error("could not change whether devices can reach each other", "error", err.Error())
 		}
 	}

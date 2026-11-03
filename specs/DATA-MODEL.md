@@ -2,6 +2,7 @@
 
 Times are UTC, stored as RFC 3339 text. IDs are ULIDs as text. No private key column exists anywhere. Internal names are technical; the UI uses the vocabulary in `specs/UX.md`.
 
+- **devices.can_reach_all** (0/1, default 0; migration 0013): the reach-all permission, see BUSINESS-RULES.
 - **networks**: id, name, address_range (managed automatically, never typed by a user), server_address (the name or IP devices use), server_address_kind (`name` | `ip`), devices_reach_each_other (0/1, default 0; migration 0008), created_at
 - **servers**: id, network_id, name, public_key, listen_port, role (`active` | `standby` | `retiring` | `retired`), last_seen_at, created_at, retired_at, auth_token_hash (the server's bearer token, hash only)
 - **people**: id, network_id, display_name, created_at. No longer shown or edited: Wardline has machines, not people. Machines made without a person hang off one hidden row named "Machines", and older rows are left as they are.

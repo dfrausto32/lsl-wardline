@@ -35,6 +35,7 @@ export function ReachCard({ initial }: { initial: boolean }) {
         <input type="checkbox" checked={on} onChange={(e) => void change(e.target.checked)} />
         <span>{s.reachLabel}</span>
       </label>
+      <p className="help">{s.reachOneMachine}</p>
       {note && <p className={note.ok ? "note" : "error"} role="status">{note.text}</p>}
     </Card>
   );

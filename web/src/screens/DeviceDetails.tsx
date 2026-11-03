@@ -106,6 +106,7 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
             {adv.last_address_seen && <div><dt>{advanced.lastEndpoint}</dt><dd>{adv.last_address_seen}</dd></div>}
           </dl>
           <NamesEditor dev={dev} />
+          <ReachAllSwitch dev={dev} />
         </details>
       )}
 
@@ -121,6 +122,60 @@ export function DeviceDetails({ id, navigate }: { id: string; navigate: (to: str
         onCancel={() => setConfirming(false)}
       />
     </div>
+  );
+}
+
+/** Advanced: let this machine reach every other machine, and every other machine reach it. Asks before turning it on. */
+function ReachAllSwitch({ dev }: { dev: Device }) {
+  const t = primary.reachAll;
+  const { data: net } = useLoad(() => api.network());
+  const [on, setOn] = useState(!!dev.can_reach_all);
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => setOn(!!dev.can_reach_all), [dev.can_reach_all]);
+
+  async function change(next: boolean) {
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.setDeviceReachAll(dev.id, next);
+      setOn(next);
+      setNote({ ok: true, text: fmt(next ? t.savedOn : t.savedOff, { name: dev.name }) });
+      setAsking(false);
+    } catch (e) {
+      setNote({ ok: false, text: messageOf(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="stack" aria-label={t.label}>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={on}
+          disabled={busy}
+          onChange={(e) => (e.target.checked ? setAsking(true) : void change(false))}
+        />
+        <span>{t.label}</span>
+      </label>
+      <p className="help">{t.help}</p>
+      {net?.devices_reach_each_other && <p className="help">{t.alreadyAll}</p>}
+      {note && <p className={note.ok ? "note" : "error"} role="status">{note.text}</p>}
+      <ConfirmDialog
+        open={asking}
+        title={fmt(t.confirmTitle, { name: dev.name })}
+        body={fmt(t.confirmBody, { name: dev.name })}
+        confirmLabel={t.confirmOn}
+        cancelLabel={primary.common.cancel}
+        busy={busy}
+        error={note && !note.ok ? note.text : null}
+        onConfirm={() => void change(true)}
+        onCancel={() => setAsking(false)}
+      />
+    </section>
   );
 }
 

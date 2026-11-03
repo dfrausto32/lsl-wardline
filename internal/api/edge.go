@@ -227,11 +227,13 @@ type edgeMember struct {
 	Status         string            `json:"status"`
 	LastSeenAt     *string           `json:"last_seen_at,omitempty"`
 	Labels         map[string]string `json:"labels"`
+	// ReachesAll is true for a machine holding the reach-all permission. It is added to the contract's fields; the Edge may ignore it.
+	ReachesAll bool `json:"reaches_all"`
 }
 
 // fingerprint is everything about a member except its status and when it was last seen: a change in it is a "member_updated".
 func (m edgeMember) fingerprint() string {
-	b, _ := json.Marshal(map[string]any{"name": m.Name, "label": m.HostnameLabel, "address": m.OverlayAddress, "roles": m.Roles, "labels": m.Labels})
+	b, _ := json.Marshal(map[string]any{"name": m.Name, "label": m.HostnameLabel, "address": m.OverlayAddress, "roles": m.Roles, "labels": m.Labels, "reaches_all": m.ReachesAll})
 	return string(b)
 }
 
@@ -276,7 +278,7 @@ func (s *Server) edgeMembers(ctx context.Context) (groupID string, out []edgeMem
 	}
 
 	taken := map[string]bool{}
-	drows, err := db.QueryContext(ctx, `SELECT id, name, COALESCE(short_name,''), tunnel_ip, status, last_seen_at FROM devices WHERE status <> 'removed' ORDER BY added_at, id`)
+	drows, err := db.QueryContext(ctx, `SELECT id, name, COALESCE(short_name,''), tunnel_ip, status, last_seen_at, can_reach_all FROM devices WHERE status <> 'removed' ORDER BY added_at, id`)
 	if err != nil {
 		return "", nil, err
 	}
@@ -284,7 +286,7 @@ func (s *Server) edgeMembers(ctx context.Context) (groupID string, out []edgeMem
 		var m edgeMember
 		var status string
 		var seen sql.NullString
-		if err := drows.Scan(&m.ID, &m.Name, &m.HostnameLabel, &m.OverlayAddress, &status, &seen); err != nil {
+		if err := drows.Scan(&m.ID, &m.Name, &m.HostnameLabel, &m.OverlayAddress, &status, &seen, &m.ReachesAll); err != nil {
 			drows.Close()
 			return "", nil, err
 		}

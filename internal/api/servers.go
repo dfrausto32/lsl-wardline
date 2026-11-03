@@ -278,7 +278,7 @@ func (s *Server) buildState(ctx context.Context, serverID string, version int64)
 	if err := s.d.Store.DB().QueryRowContext(ctx, `SELECT listen_port FROM servers WHERE id=?`, serverID).Scan(&port); err != nil {
 		return gateway.DesiredState{}, err
 	}
-	rows, err := s.d.Store.DB().QueryContext(ctx, `SELECT d.id, k.public_key, d.tunnel_ip, p.ciphertext, p.nonce
+	rows, err := s.d.Store.DB().QueryContext(ctx, `SELECT d.id, k.public_key, d.tunnel_ip, p.ciphertext, p.nonce, d.can_reach_all
 		FROM devices d JOIN device_keys k ON k.device_id=d.id AND k.state='active'
 		LEFT JOIN preshared_keys p ON p.device_id=d.id
 		WHERE d.status IN ('waiting','active') ORDER BY d.tunnel_ip`)
@@ -291,7 +291,8 @@ func (s *Server) buildState(ctx context.Context, serverID string, version int64)
 	for rows.Next() {
 		var p gateway.DesiredPeer
 		var ct, nonce []byte
-		if err := rows.Scan(&p.DeviceID, &p.PublicKey, &p.TunnelIP, &ct, &nonce); err != nil {
+		var reachAll bool
+		if err := rows.Scan(&p.DeviceID, &p.PublicKey, &p.TunnelIP, &ct, &nonce, &reachAll); err != nil {
 			return st, err
 		}
 		if len(ct) > 0 {
@@ -302,6 +303,9 @@ func (s *Server) buildState(ctx context.Context, serverID string, version int64)
 			p.PresharedKey = string(pt)
 		}
 		st.Peers = append(st.Peers, p)
+		if reachAll && !n.Reach {
+			st.ReachAll = append(st.ReachAll, p.TunnelIP)
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return st, err

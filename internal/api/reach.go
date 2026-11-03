@@ -52,3 +52,56 @@ func (s *Server) handleReachPut(w http.ResponseWriter, r *http.Request, adminID 
 	s.hub.broadcast()
 	s.json(w, http.StatusOK, map[string]any{"devices_reach_each_other": in.Enabled})
 }
+
+// handleDeviceReachAll gives or takes away the reach-all permission: the machine may reach every other machine and be
+// reached by every other machine, through the server. Off by default. Only the servers need to hear about it.
+func (s *Server) handleDeviceReachAll(w http.ResponseWriter, r *http.Request, adminID string) {
+	var in struct {
+		Enabled bool `json:"enabled"`
+	}
+	if !s.decode(w, r, &in) {
+		return
+	}
+	ctx := r.Context()
+	id := r.PathValue("id")
+	email := s.adminEmail(ctx, adminID)
+	tx, err := s.d.Store.DB().BeginTx(ctx, nil)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	defer tx.Rollback()
+	var name string
+	var was bool
+	if err := tx.QueryRowContext(ctx, `SELECT name, can_reach_all FROM devices WHERE id=? AND status <> 'removed'`, id).Scan(&name, &was); err != nil {
+		s.fail(w, http.StatusNotFound, "That machine was not found. It may have been removed.")
+		return
+	}
+	if was != in.Enabled {
+		v := 0
+		if in.Enabled {
+			v = 1
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE devices SET can_reach_all=? WHERE id=?`, v, id); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if err := bumpVersion(ctx, tx); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if err := s.d.Audit.Append(ctx, tx, audit.Event{Actor: email, Action: "device.reach_all_changed", SubjectType: "device", SubjectID: id,
+			PlainText: audit.SentenceReachAllChanged(email, name, in.Enabled)}); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if was != in.Enabled {
+		s.hub.broadcast()
+	}
+	s.json(w, http.StatusOK, map[string]any{"can_reach_all": in.Enabled})
+}

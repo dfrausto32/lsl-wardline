@@ -3,6 +3,8 @@ package audit
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/csv"
 	"errors"
 	"path/filepath"
@@ -12,7 +14,14 @@ import (
 	"lsl-wardline/internal/store"
 )
 
-const fakeKey = "yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk="
+// fakeKey is a fresh random value in the shape of a WireGuard key, made for each test run. No key is written in the source.
+var fakeKey = func() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}()
 
 func setup(t *testing.T) (*Log, *store.Store) {
 	t.Helper()

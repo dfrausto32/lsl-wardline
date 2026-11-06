@@ -1,6 +1,7 @@
 package wg
 
 import (
+	"crypto/ecdh"
 	"encoding/base64"
 	"testing"
 )
@@ -45,14 +46,20 @@ func TestGenerateKeypairShapeAndUniqueness(t *testing.T) {
 	}
 }
 
-func TestPublicFromPrivateMatchesKnownVector(t *testing.T) {
-	// Expected value produced by the reference tool: `echo <priv> | wg pubkey`
-	// (wireguard-tools in the dev container).
-	priv := "yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk="
-	want := "HIgo9xNzJMWLKASShiTqIybxZ0U3wGLiUeJ1PKf8ykw="
-	got, err := PublicFromPrivate(priv)
-	if err != nil || got != want {
-		t.Fatalf("got %q err %v", got, err)
+func TestPublicFromPrivateMatchesTheStandardLibrary(t *testing.T) {
+	// The expected public key is worked out here, by Go's own X25519, so no key is written in the source.
+	for i := 0; i < 5; i++ {
+		priv := mustKey(t)
+		raw, _ := base64.StdEncoding.DecodeString(priv)
+		k, err := ecdh.X25519().NewPrivateKey(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := base64.StdEncoding.EncodeToString(k.PublicKey().Bytes())
+		got, err := PublicFromPrivate(priv)
+		if err != nil || got != want {
+			t.Fatalf("got %q want %q err %v", got, want, err)
+		}
 	}
 }
 

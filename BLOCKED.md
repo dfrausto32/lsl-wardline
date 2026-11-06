@@ -64,3 +64,9 @@ A Mac with Xcode (or a cloud Mac build service) and an Apple Developer Program m
 - Go and SQLite bumped: dev and production images use Go 1.26, `modernc.org/sqlite` is v1.61.0.
 - Authenticator codes can no longer be reused (migration 0004). Two existing tests were changed to wait one 30-second step after switching two-step on, because the code used to enable it is now spent. This is the intended behaviour, not a weakening of the tests.
 - The container install still uses the placeholder image name `lsl-wardline:latest`, built locally; no registry is needed for the systemd install.
+
+## Phases 6 to 9: decisions recorded 2026-10-29 (spec: specs/MEMBERSHIP-AND-MODES.md)
+- Repos stay separate: Wardline and a separate Edge repo.
+- Each group has its own control plane. No federation for now.
+- Managed groups use one always-on authority; airgapped groups use open mode (anyone can invite, any member can remove any member).
+- Still undecided, to be settled in the named tasks: canonical log encoding (6.0), join channel (7.0), replication mechanism (start of Phase 8), log compaction (not built), IPv4 in open mode (not built).

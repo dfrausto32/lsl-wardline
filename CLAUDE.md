@@ -59,3 +59,6 @@ Undecided, ask before choosing: UI styling toolkit, Windows tunnel approach (pha
 - Report what you verified, not what you inferred. "Not yet tested" is not "ruled out": say which you mean.
 - When you build a screen, look at it (Playwright screenshot at desktop and iPhone widths) before calling it done.
 - If you are about to build something that is not in the specs, stop and ask. Scope creep is the main risk for a solo project.
+
+## Phases 6 to 9 (proposed, not started)
+Read `specs/MEMBERSHIP-AND-MODES.md` before touching anything about membership, groups, invites, or replication. It adds a membership log with two group modes (managed and open) without changing Phase 1 and 2 behaviour. Two reminders: the Edge is a **separate repo** and must never be imported here (Wardline only exposes the read-only API in section 9 of that spec); and non-negotiable 10 (hub-and-spoke only) stays in force until Dylan confirms at the start of Phase 9. Do not start any of this until Dylan says go.

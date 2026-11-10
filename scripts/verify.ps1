@@ -9,6 +9,7 @@ function Step($name, [scriptblock]$cmd) {
     if ($LASTEXITCODE -ne 0) { Write-Host "FAILED: $name"; exit $LASTEXITCODE }
 }
 
+Step "keep web/node_modules empty on this computer" { powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "check-host-modules.ps1") }
 Step "build dev image" { docker compose -f compose.dev.yaml build dev }
 Step "gofmt" { docker compose -f compose.dev.yaml run --rm dev sh scripts/check-fmt.sh }
 Step "go vet" { docker compose -f compose.dev.yaml run --rm dev go vet ./... }

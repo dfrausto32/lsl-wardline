@@ -25,5 +25,10 @@ docker run --rm --cap-add NET_ADMIN alpine sh -c "apk add -q iproute2 && ip link
 - Everything Wardline creates is in containers, images, and named volumes with the prefix `wardline_`. `./scripts/lab-down.ps1 -Clean` removes the lab's containers and volumes.
 - Never run `docker system prune` or delete volumes outside the `wardline_` prefix. That is Dylan's call.
 
+## Web dependencies stay in Docker
+- Run `pnpm` and `npm` only through `docker compose` (the `dev` and `playwright` services). Never install on this computer, and never in a container that lacks the `webmodules` volume.
+- The real `web/node_modules` is the `webmodules` Docker volume, mounted over the empty `web/node_modules` folder in the repo. If an install writes into the Windows folder instead, it leaves Linux links that Windows cannot open, and Obsidian refuses to load a vault that contains them ("EACCES ... node_modules").
+- `scripts/check-host-modules.ps1` empties the Windows folder if that ever happens. `verify.ps1` and `ui-test.ps1` run it first.
+
 ## What containers cannot test (manual checks)
 Windows agent and Windows behaviour, iPhone app, and real-world NAT and mobile networks. These are tracked in `specs/ACCEPTANCE.md` as manual checks.

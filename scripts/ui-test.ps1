@@ -8,6 +8,8 @@ if (-not $env:WARDLINE_LAB_PORT) { $env:WARDLINE_LAB_PORT = "18080" }
 $compose = @("compose", "-f", "compose.dev.yaml", "--profile", "lab", "--profile", "ui")
 $down = Join-Path $PSScriptRoot "lab-down.ps1"
 
+powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "check-host-modules.ps1")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & powershell -ExecutionPolicy Bypass -File $down -Clean | Out-Null
 docker compose -f compose.dev.yaml build dev control
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
